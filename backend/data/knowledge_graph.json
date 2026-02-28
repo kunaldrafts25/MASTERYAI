@@ -1,0 +1,1866 @@
+{
+  "domains": [
+    {
+      "id": "python",
+      "name": "Python Programming",
+      "description": "Core Python language concepts from basics to advanced patterns",
+      "concept_count": 15
+    },
+    {
+      "id": "ds",
+      "name": "Data Structures",
+      "description": "Fundamental data structures and algorithms",
+      "concept_count": 10
+    },
+    {
+      "id": "web",
+      "name": "Web Development",
+      "description": "Backend web development concepts including HTTP, APIs, and databases",
+      "concept_count": 8
+    }
+  ],
+  "concepts": [
+    {
+      "id": "python.variables",
+      "name": "Variables & Types",
+      "domain": "python",
+      "description": "Variable assignment, naming conventions, and Python's type system including int, float, str, bool, and None. Covers dynamic typing and type checking.",
+      "difficulty_tier": 1,
+      "prerequisites": [],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "variables_are_boxes",
+          "description": "Thinks variables are containers that hold values, rather than names that reference objects.",
+          "indicators": [
+            "Confused when two variables point to the same mutable object",
+            "Doesn't understand why changing a list through one name affects the other",
+            "Draws variables as boxes with values inside"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Assign a list to two variables, mutate through one, ask what the other shows"
+        },
+        {
+          "id": "type_coercion_assumed",
+          "description": "Assumes Python automatically converts between types like JavaScript does.",
+          "indicators": [
+            "Tries to concatenate str and int without conversion",
+            "Surprised by TypeError on mixed-type operations",
+            "Doesn't use explicit int() or str() casts"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Ask learner to predict output of '5' + 3"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 60
+      },
+      "teaching_contexts": [
+        "temperature converter variables",
+        "user profile data storage",
+        "simple calculator inputs"
+      ],
+      "test_contexts": [
+        "inventory tracking system",
+        "game character stats",
+        "sensor reading storage",
+        "recipe ingredient scaling",
+        "student grade records"
+      ],
+      "tags": ["basics", "types", "assignment", "dynamic-typing"],
+      "base_hours": 1.0
+    },
+    {
+      "id": "python.control_flow",
+      "name": "Control Flow",
+      "domain": "python",
+      "description": "If/elif/else conditionals, for and while loops, break/continue, and boolean logic. Building blocks for program logic.",
+      "difficulty_tier": 1,
+      "prerequisites": ["python.variables"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "elif_vs_multiple_if",
+          "description": "Uses multiple if statements when elif is needed, not realizing all branches execute independently.",
+          "indicators": [
+            "Multiple if blocks that should be mutually exclusive",
+            "Surprised when more than one branch executes",
+            "Doesn't understand short-circuit behavior of elif chain"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Grade classifier using if/if/if vs if/elif/elif where ranges overlap"
+        },
+        {
+          "id": "loop_off_by_one",
+          "description": "Consistently off by one in loop boundaries, confusing inclusive and exclusive ranges.",
+          "indicators": [
+            "Uses range(1, n) when range(n) is correct or vice versa",
+            "Fence-post errors in iteration counts",
+            "Confuses 'up to' with 'up to and including'"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Print numbers 1 through 10 using range() — check if they include 10"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 60
+      },
+      "teaching_contexts": [
+        "traffic light state machine",
+        "number guessing game logic",
+        "input validation loops"
+      ],
+      "test_contexts": [
+        "vending machine state logic",
+        "elevator floor controller",
+        "password strength checker",
+        "tax bracket calculator",
+        "calendar day-of-week logic"
+      ],
+      "tags": ["basics", "conditionals", "loops", "boolean-logic"],
+      "base_hours": 1.5
+    },
+    {
+      "id": "python.functions",
+      "name": "Functions",
+      "domain": "python",
+      "description": "Defining and calling functions, parameters vs arguments, return values, default arguments, *args and **kwargs. First-class functions as objects.",
+      "difficulty_tier": 2,
+      "prerequisites": ["python.control_flow"],
+      "transfers_to": [
+        {
+          "target": "python.closures",
+          "strength": 0.6,
+          "type": "prerequisite",
+          "description": "Closures are built on top of functions. Solid function understanding is essential for grasping how inner functions capture outer variables."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "mutable_default_shared",
+          "description": "Doesn't realize mutable default arguments are shared across calls, leading to unexpected state accumulation.",
+          "indicators": [
+            "Uses [] or {} as default argument without understanding side effects",
+            "Surprised when default list grows across calls",
+            "Doesn't know the None-default pattern"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "def append_to(item, lst=[]): lst.append(item); return lst — call twice and ask what happens"
+        },
+        {
+          "id": "return_vs_print",
+          "description": "Confuses printing a value with returning it. Thinks print() makes the value available to the caller.",
+          "indicators": [
+            "Uses print instead of return in functions",
+            "Assigns result of a print-only function and gets None",
+            "Cannot chain function calls because nothing is returned"
+          ],
+          "remediation_strategy": "socratic",
+          "example_trigger": "Write a function that prints the sum, then try to use its result in another calculation"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 45
+      },
+      "teaching_contexts": [
+        "math utility functions",
+        "string formatting helpers",
+        "data validation functions",
+        "simple API wrappers"
+      ],
+      "test_contexts": [
+        "retry logic with configurable attempts",
+        "text processing pipeline",
+        "shopping cart discount calculator",
+        "recursive file path builder",
+        "callback registration system",
+        "event dispatcher"
+      ],
+      "tags": ["functions", "parameters", "return-values", "first-class"],
+      "base_hours": 2.0
+    },
+    {
+      "id": "python.scope",
+      "name": "Scope & Namespaces",
+      "domain": "python",
+      "description": "LEGB rule (Local, Enclosing, Global, Built-in), the global and nonlocal keywords, namespace dictionaries, and how Python resolves names at runtime.",
+      "difficulty_tier": 2,
+      "prerequisites": ["python.functions"],
+      "transfers_to": [
+        {
+          "target": "python.closures",
+          "strength": 0.7,
+          "type": "prerequisite",
+          "description": "Closures rely on the enclosing scope in LEGB. Understanding scope resolution is the foundation for understanding how closures capture variables."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "scope_vs_closure",
+          "description": "Thinks scope only matters during execution, not realizing that enclosing scope persists when a closure is created.",
+          "indicators": [
+            "Expects enclosing variables to disappear after outer function returns",
+            "Cannot explain the 'E' in LEGB",
+            "Believes global is the only way to share state between functions"
+          ],
+          "remediation_strategy": "socratic",
+          "example_trigger": "Ask what LEGB stands for, then ask what happens to enclosing scope after outer function returns"
+        },
+        {
+          "id": "global_overuse",
+          "description": "Uses global keyword excessively instead of passing arguments or using return values.",
+          "indicators": [
+            "Declares global in most functions",
+            "Functions depend on external state rather than parameters",
+            "Cannot explain why global is discouraged"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Refactor a program that uses 5 global variables into one that passes arguments"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "nested function variable access",
+        "global vs local variable shadowing",
+        "namespace inspection with dir() and vars()"
+      ],
+      "test_contexts": [
+        "configuration manager with nested defaults",
+        "plugin system with isolated namespaces",
+        "module-level vs function-level state",
+        "debugging a variable shadowing bug",
+        "nonlocal counter in a factory function"
+      ],
+      "tags": ["scope", "LEGB", "namespaces", "global", "nonlocal"],
+      "base_hours": 2.0
+    },
+    {
+      "id": "python.closures",
+      "name": "Closures",
+      "domain": "python",
+      "description": "Functions that capture variables from their enclosing scope, retaining access even after the outer function has returned.",
+      "difficulty_tier": 3,
+      "prerequisites": ["python.functions", "python.scope"],
+      "transfers_to": [
+        {
+          "target": "web.middleware",
+          "strength": 0.5,
+          "type": "analogous",
+          "description": "Middleware pattern uses closures to capture config/state. Understanding closures makes middleware intuitive."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "closure_late_binding",
+          "description": "Believes closure captures the VALUE of a variable at definition time, not a REFERENCE to the variable.",
+          "indicators": [
+            "Expects loop variable to have iteration-time value in closure",
+            "Surprised when all closures in a loop share the same value",
+            "Does not understand 'default argument trick' as a fix"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Create closures in a loop, then call them — learner expects [0,1,2] but gets [2,2,2]"
+        },
+        {
+          "id": "closure_vs_scope",
+          "description": "Confuses closure with normal function scope. Does not understand that closures persist after outer returns.",
+          "indicators": [
+            "Expects variable to be garbage collected after outer function returns",
+            "Cannot explain why inner function can access outer variable later",
+            "Thinks closure is just a 'nested function'"
+          ],
+          "remediation_strategy": "socratic",
+          "example_trigger": "Ask what happens to 'x' after make_adder() returns"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "counter functions",
+        "make_adder pattern",
+        "private variables via closures"
+      ],
+      "test_contexts": [
+        "event handler factory",
+        "middleware configuration",
+        "memoization cache",
+        "callback customization",
+        "rate limiter implementation"
+      ],
+      "tags": ["functions", "scope", "state", "functional-programming"],
+      "base_hours": 3.0
+    },
+    {
+      "id": "python.recursion",
+      "name": "Recursion",
+      "domain": "python",
+      "description": "Functions that call themselves to solve problems by breaking them into smaller sub-problems. Base cases, recursive cases, call stack mechanics, and stack overflow risks.",
+      "difficulty_tier": 3,
+      "prerequisites": ["python.functions"],
+      "transfers_to": [
+        {
+          "target": "ds.tree_traversal",
+          "strength": 0.7,
+          "type": "analogous",
+          "description": "Tree traversal algorithms are naturally recursive. Mastering recursion makes tree DFS/BFS intuitive."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "recursion_vs_iteration",
+          "description": "Believes recursion and iteration are interchangeable without trade-offs. Doesn't understand stack depth limits or when recursion is the natural fit.",
+          "indicators": [
+            "Always converts recursive solutions to loops without considering readability",
+            "Cannot identify problems that are naturally recursive",
+            "Ignores stack overflow risk for deep recursion"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Ask when recursion is better than a loop, then present a tree problem"
+        },
+        {
+          "id": "missing_base_case",
+          "description": "Forgets or incorrectly defines the base case, leading to infinite recursion.",
+          "indicators": [
+            "Writes recursive functions without explicit base case",
+            "Base case doesn't cover all terminal conditions",
+            "Gets RecursionError and doesn't know why"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Present a recursive factorial with missing base case, ask them to trace execution"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "factorial calculation",
+        "fibonacci sequence",
+        "directory tree walking"
+      ],
+      "test_contexts": [
+        "flatten nested lists of arbitrary depth",
+        "recursive JSON validator",
+        "tower of Hanoi solver",
+        "palindrome checker via recursion",
+        "recursive binary search",
+        "nested comment thread renderer"
+      ],
+      "tags": ["recursion", "call-stack", "divide-and-conquer", "base-case"],
+      "base_hours": 3.5
+    },
+    {
+      "id": "python.list_comp",
+      "name": "List Comprehensions",
+      "domain": "python",
+      "description": "Concise syntax for creating lists from iterables with optional filtering. Includes nested comprehensions and dict/set comprehensions.",
+      "difficulty_tier": 2,
+      "prerequisites": ["python.functions"],
+      "transfers_to": [
+        {
+          "target": "ds.arrays_lists",
+          "strength": 0.3,
+          "type": "reinforcing",
+          "description": "List comprehensions reinforce array/list manipulation patterns and filtering operations."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "comp_readability_ignored",
+          "description": "Over-uses comprehensions for complex logic that would be clearer as a regular loop.",
+          "indicators": [
+            "Writes deeply nested comprehensions that are hard to read",
+            "Uses comprehensions with side effects",
+            "Cannot explain their own comprehension when asked"
+          ],
+          "remediation_strategy": "explain_back",
+          "example_trigger": "Show a triple-nested comprehension, ask them to explain it, then rewrite as loops"
+        },
+        {
+          "id": "comp_vs_generator",
+          "description": "Doesn't know the difference between [x for x in ...] and (x for x in ...) and when to use each.",
+          "indicators": [
+            "Always uses list comprehension even for large datasets",
+            "Doesn't recognize generator expression syntax",
+            "Confused why sum((x for x in range(1000000))) uses less memory"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Compare memory usage of list comp vs generator expr on a large range"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 45
+      },
+      "teaching_contexts": [
+        "filtering even numbers from a list",
+        "transforming a list of strings",
+        "creating a matrix with nested comprehensions"
+      ],
+      "test_contexts": [
+        "CSV data extraction and filtering",
+        "image pixel transformation",
+        "word frequency counter",
+        "database result flattening",
+        "config file parser"
+      ],
+      "tags": ["comprehensions", "functional", "iteration", "filtering"],
+      "base_hours": 1.5
+    },
+    {
+      "id": "python.generators",
+      "name": "Generators",
+      "domain": "python",
+      "description": "Functions that yield values lazily using the yield keyword. Generator expressions, iterator protocol, and memory-efficient data processing pipelines.",
+      "difficulty_tier": 3,
+      "prerequisites": ["python.functions"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "generator_reuse",
+          "description": "Tries to iterate over a generator twice, not realizing generators are exhausted after one pass.",
+          "indicators": [
+            "Iterates a generator in a loop then tries to use it again",
+            "Confused why second iteration produces nothing",
+            "Stores generator instead of list when multiple passes are needed"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Create a generator, loop over it twice, ask why second loop is empty"
+        },
+        {
+          "id": "yield_vs_return",
+          "description": "Treats yield like return, not understanding that the function state is preserved between yields.",
+          "indicators": [
+            "Expects function to restart from the top on next() call",
+            "Doesn't understand that local variables persist between yields",
+            "Cannot trace generator execution step by step"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Trace through a generator with print statements before and after yield"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "infinite counter generator",
+        "fibonacci generator",
+        "line-by-line file reader"
+      ],
+      "test_contexts": [
+        "paginated API result streamer",
+        "log file parser for large files",
+        "prime number sieve generator",
+        "sliding window over data stream",
+        "lazy CSV row processor"
+      ],
+      "tags": ["generators", "yield", "lazy-evaluation", "iterators"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "python.decorators",
+      "name": "Decorators",
+      "domain": "python",
+      "description": "Functions that wrap other functions to extend behavior without modifying the original. The @decorator syntax, functools.wraps, and common patterns like timing, logging, and access control.",
+      "difficulty_tier": 3,
+      "prerequisites": ["python.closures"],
+      "transfers_to": [
+        {
+          "target": "web.middleware",
+          "strength": 0.6,
+          "type": "analogous",
+          "description": "Middleware wraps request handlers the same way decorators wrap functions. Decorator mastery maps directly to middleware understanding."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "decorator_execution_time",
+          "description": "Thinks the decorator runs when the decorated function is called, not when it's defined.",
+          "indicators": [
+            "Surprised that decorator code runs at import time",
+            "Doesn't understand why decorator prints happen before any function call",
+            "Confuses decoration time vs call time"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Add print statements in decorator and decorated function, ask prediction of output order"
+        },
+        {
+          "id": "decorator_lost_metadata",
+          "description": "Doesn't use functools.wraps, leading to lost function name and docstring.",
+          "indicators": [
+            "Decorated function.__name__ returns wrapper name",
+            "help() on decorated function shows wrong docstring",
+            "Never heard of functools.wraps"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Decorate a function, check __name__ and __doc__, then fix with @wraps"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "timing decorator",
+        "logging decorator",
+        "simple authentication check decorator"
+      ],
+      "test_contexts": [
+        "retry-with-backoff decorator",
+        "caching/memoization decorator",
+        "rate limiting decorator",
+        "input validation decorator",
+        "deprecated function warning decorator",
+        "permission checking decorator"
+      ],
+      "tags": ["decorators", "closures", "metaprogramming", "patterns"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "python.classes",
+      "name": "Classes & Objects",
+      "domain": "python",
+      "description": "Object-oriented programming in Python: class definition, __init__, instance vs class attributes, methods, self, and basic dunder methods.",
+      "difficulty_tier": 2,
+      "prerequisites": ["python.functions", "python.scope"],
+      "transfers_to": [
+        {
+          "target": "python.inheritance",
+          "strength": 0.8,
+          "type": "prerequisite",
+          "description": "Inheritance builds directly on class fundamentals. Strong class understanding is required before exploring class hierarchies."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "class_vs_instance_attrs",
+          "description": "Confuses class-level attributes with instance-level attributes, leading to shared state bugs.",
+          "indicators": [
+            "Defines mutable class attribute and is surprised when instances share it",
+            "Doesn't understand the difference between MyClass.x and self.x",
+            "Modifies class attribute thinking it only affects one instance"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Define a class with a list as class attribute, create two instances, append to one, check the other"
+        },
+        {
+          "id": "self_confusion",
+          "description": "Doesn't understand that self is just a convention for the instance reference, or forgets it in method definitions.",
+          "indicators": [
+            "Forgets self as first parameter in methods",
+            "Calls method without understanding implicit self passing",
+            "Thinks self is a keyword rather than a convention"
+          ],
+          "remediation_strategy": "socratic",
+          "example_trigger": "Ask what happens when you call obj.method() — how does Python know which object?"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "bank account class",
+        "playing card and deck classes",
+        "simple todo item model"
+      ],
+      "test_contexts": [
+        "shopping cart with item objects",
+        "game entity system",
+        "library catalog with book objects",
+        "thermostat controller class",
+        "social media post model",
+        "matrix class with operator overloading"
+      ],
+      "tags": ["OOP", "classes", "objects", "methods", "encapsulation"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "python.inheritance",
+      "name": "Inheritance",
+      "domain": "python",
+      "description": "Class hierarchies, method overriding, super(), multiple inheritance, MRO (Method Resolution Order), and when to prefer composition over inheritance.",
+      "difficulty_tier": 3,
+      "prerequisites": ["python.classes"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "is_a_vs_has_a",
+          "description": "Uses inheritance for 'has-a' relationships instead of composition. Over-inherits when a simple attribute would suffice.",
+          "indicators": [
+            "Creates deep inheritance hierarchies for unrelated behaviors",
+            "class Car(Engine) instead of Car containing an Engine",
+            "Cannot explain when to use inheritance vs composition"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Should a Car inherit from Engine or contain one? What about a ElectricCar?"
+        },
+        {
+          "id": "super_misuse",
+          "description": "Doesn't understand how super() works with MRO, especially in multiple inheritance.",
+          "indicators": [
+            "Calls parent class by name instead of super()",
+            "Doesn't call super().__init__() in child class",
+            "Confused by diamond inheritance resolution"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Create a diamond inheritance, trace super() calls through the MRO"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "animal hierarchy (Animal -> Dog, Cat)",
+        "shape hierarchy with area methods",
+        "vehicle type hierarchy"
+      ],
+      "test_contexts": [
+        "payment processor hierarchy",
+        "notification system (email, SMS, push)",
+        "employee role hierarchy with permissions",
+        "file format parser hierarchy",
+        "UI widget inheritance chain"
+      ],
+      "tags": ["OOP", "inheritance", "polymorphism", "composition", "MRO"],
+      "base_hours": 2.0
+    },
+    {
+      "id": "python.exceptions",
+      "name": "Exception Handling",
+      "domain": "python",
+      "description": "Try/except/else/finally blocks, raising exceptions, custom exception classes, and exception chaining. Proper error handling patterns.",
+      "difficulty_tier": 2,
+      "prerequisites": ["python.control_flow"],
+      "transfers_to": [
+        {
+          "target": "web.error_handling",
+          "strength": 0.8,
+          "type": "reinforcing",
+          "description": "API error handling builds on exception handling patterns. Exception mastery transfers directly to structuring HTTP error responses."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "bare_except",
+          "description": "Uses bare except: or catches Exception too broadly, silencing errors that should propagate.",
+          "indicators": [
+            "Writes except: pass everywhere",
+            "Catches Exception when only specific errors are expected",
+            "Hides bugs by swallowing all exceptions"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Show code with bare except that hides a NameError bug, ask them to find the issue"
+        },
+        {
+          "id": "exception_flow_confusion",
+          "description": "Doesn't understand when else and finally blocks execute relative to the try/except.",
+          "indicators": [
+            "Cannot predict which blocks execute when an exception occurs vs doesn't",
+            "Puts cleanup code in except instead of finally",
+            "Doesn't know else only runs if no exception was raised"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Trace execution through try/except/else/finally with and without an exception"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 45
+      },
+      "teaching_contexts": [
+        "file open with error handling",
+        "user input validation",
+        "network request retry on failure"
+      ],
+      "test_contexts": [
+        "database connection manager with cleanup",
+        "API response parser with fallbacks",
+        "multi-step transaction with rollback",
+        "custom exception hierarchy for a library",
+        "graceful degradation in a pipeline"
+      ],
+      "tags": ["exceptions", "error-handling", "try-except", "robustness"],
+      "base_hours": 1.5
+    },
+    {
+      "id": "python.file_io",
+      "name": "File I/O",
+      "domain": "python",
+      "description": "Reading and writing files using open(), context managers (with statement), handling text vs binary modes, and working with common formats like CSV and JSON.",
+      "difficulty_tier": 2,
+      "prerequisites": ["python.functions", "python.exceptions"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "file_not_closed",
+          "description": "Opens files without using a context manager, risking resource leaks.",
+          "indicators": [
+            "Uses f = open() without with statement",
+            "Forgets to call f.close()",
+            "Doesn't understand why unclosed files cause issues"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Open a file, write to it without closing, try to read it in another process"
+        },
+        {
+          "id": "encoding_ignored",
+          "description": "Ignores file encoding, leading to UnicodeDecodeError on non-ASCII content.",
+          "indicators": [
+            "Never specifies encoding parameter",
+            "Surprised by encoding errors on international text",
+            "Doesn't know the difference between utf-8 and latin-1"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Read a file containing emojis or accented characters without specifying encoding"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 45
+      },
+      "teaching_contexts": [
+        "reading a text file line by line",
+        "writing CSV output",
+        "loading JSON configuration"
+      ],
+      "test_contexts": [
+        "log file rotator",
+        "config file migration tool",
+        "binary image file header reader",
+        "atomic file write with temp file",
+        "streaming large file processor"
+      ],
+      "tags": ["files", "IO", "context-managers", "encoding"],
+      "base_hours": 1.0
+    },
+    {
+      "id": "python.modules",
+      "name": "Modules & Packages",
+      "domain": "python",
+      "description": "Import system, creating modules and packages, __init__.py, relative vs absolute imports, and the module search path.",
+      "difficulty_tier": 2,
+      "prerequisites": ["python.functions"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "circular_import_confusion",
+          "description": "Creates circular imports without understanding why they fail or how to restructure.",
+          "indicators": [
+            "Gets ImportError from circular dependency",
+            "Doesn't understand module execution order",
+            "Moves imports inside functions as a band-aid without understanding why it works"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Create two modules that import each other, trace the execution order"
+        },
+        {
+          "id": "star_import_pollution",
+          "description": "Uses from module import * without understanding namespace pollution and shadowing risks.",
+          "indicators": [
+            "Relies on star imports in production code",
+            "Cannot explain what names are imported",
+            "Gets NameError when __all__ excludes something they expected"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Star import two modules that both define 'process()', ask which one gets called"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 45
+      },
+      "teaching_contexts": [
+        "splitting a script into modules",
+        "creating a utility package",
+        "using __init__.py for package API"
+      ],
+      "test_contexts": [
+        "plugin system with dynamic imports",
+        "package restructuring exercise",
+        "relative import resolution in nested packages",
+        "lazy module loading pattern",
+        "import hook for custom file types"
+      ],
+      "tags": ["modules", "packages", "imports", "organization"],
+      "base_hours": 1.5
+    },
+    {
+      "id": "python.async",
+      "name": "Async Basics",
+      "domain": "python",
+      "description": "Asynchronous programming with async/await, coroutines, the event loop, asyncio.gather, and concurrent task execution for I/O-bound workloads.",
+      "difficulty_tier": 4,
+      "prerequisites": ["python.functions", "python.generators"],
+      "transfers_to": [
+        {
+          "target": "web.request_response",
+          "strength": 0.6,
+          "type": "reinforcing",
+          "description": "Async is how modern web servers handle concurrent requests. Understanding async makes request/response concurrency intuitive."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "async_is_parallel",
+          "description": "Believes async/await runs code in parallel threads. Doesn't understand cooperative multitasking on a single thread.",
+          "indicators": [
+            "Thinks await spawns a new thread",
+            "Uses async for CPU-bound work expecting speedup",
+            "Cannot explain the difference between concurrency and parallelism"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Compare async to a chef switching between dishes while waiting for water to boil"
+        },
+        {
+          "id": "blocking_in_async",
+          "description": "Calls blocking functions (time.sleep, requests.get) inside async functions, freezing the entire event loop.",
+          "indicators": [
+            "Uses time.sleep() instead of asyncio.sleep()",
+            "Uses synchronous HTTP library inside async function",
+            "Event loop freezes and they don't know why"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Write an async function using time.sleep(5), run two tasks concurrently, observe they run sequentially"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 3,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 21
+      },
+      "teaching_contexts": [
+        "fetching multiple URLs concurrently",
+        "async timer/countdown",
+        "producer-consumer with asyncio.Queue"
+      ],
+      "test_contexts": [
+        "async web scraper with rate limiting",
+        "chat server message broadcaster",
+        "async file watcher",
+        "database connection pool manager",
+        "concurrent API aggregator with timeout",
+        "async retry with exponential backoff"
+      ],
+      "tags": ["async", "await", "concurrency", "event-loop", "coroutines"],
+      "base_hours": 3.5
+    },
+    {
+      "id": "ds.arrays_lists",
+      "name": "Arrays & Lists",
+      "domain": "ds",
+      "description": "Contiguous and dynamic array data structures. Indexing, slicing, insertion, deletion, and time complexity analysis for common operations.",
+      "difficulty_tier": 1,
+      "prerequisites": [],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "insert_is_o1",
+          "description": "Assumes inserting at any position in an array is O(1), not realizing elements must shift.",
+          "indicators": [
+            "Inserts at index 0 in a loop without considering performance",
+            "Cannot explain why append is faster than insert(0, x)",
+            "Doesn't understand the difference between array and linked list insertion"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Time insert(0, x) vs append(x) for 100,000 elements and explain the difference"
+        },
+        {
+          "id": "slice_creates_copy",
+          "description": "Doesn't realize slicing creates a new list, leading to unexpected memory usage or mutation bugs.",
+          "indicators": [
+            "Modifies a slice expecting the original to change",
+            "Creates huge copies via slicing without knowing it",
+            "Confuses slice behavior between lists and numpy arrays"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Slice a list, modify the slice, check if original changed — explain why"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 60
+      },
+      "teaching_contexts": [
+        "playlist manager with add/remove/reorder",
+        "student grade tracker",
+        "dynamic resizing demonstration"
+      ],
+      "test_contexts": [
+        "sliding window maximum",
+        "rotate array by k positions",
+        "merge two sorted lists",
+        "find duplicate in array",
+        "implement a circular buffer"
+      ],
+      "tags": ["arrays", "lists", "indexing", "time-complexity"],
+      "base_hours": 1.5
+    },
+    {
+      "id": "ds.stacks",
+      "name": "Stacks",
+      "domain": "ds",
+      "description": "Last-In-First-Out (LIFO) data structure. Push, pop, peek operations, and applications in expression parsing, undo systems, and call stack simulation.",
+      "difficulty_tier": 2,
+      "prerequisites": ["ds.arrays_lists"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "stack_random_access",
+          "description": "Tries to access elements in the middle of a stack, violating the LIFO contract.",
+          "indicators": [
+            "Indexes into a stack like an array",
+            "Doesn't understand why only the top element is accessible",
+            "Uses a list as a stack but accesses arbitrary indices"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Explain why you can't grab a plate from the middle of a stack of plates"
+        },
+        {
+          "id": "stack_vs_queue_confused",
+          "description": "Mixes up LIFO and FIFO behavior, using a stack where a queue is needed or vice versa.",
+          "indicators": [
+            "Uses a stack for BFS traversal",
+            "Uses a queue for undo functionality",
+            "Cannot articulate the difference in ordering"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Process tasks in arrival order using a stack — ask why results are backwards"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 45
+      },
+      "teaching_contexts": [
+        "browser back button implementation",
+        "balanced parentheses checker",
+        "undo/redo system"
+      ],
+      "test_contexts": [
+        "postfix expression evaluator",
+        "min-stack with O(1) min lookup",
+        "stock span problem",
+        "function call stack simulator",
+        "HTML tag validator"
+      ],
+      "tags": ["stack", "LIFO", "push-pop", "parsing"],
+      "base_hours": 1.5
+    },
+    {
+      "id": "ds.queues",
+      "name": "Queues",
+      "domain": "ds",
+      "description": "First-In-First-Out (FIFO) data structure. Enqueue, dequeue operations, circular queues, priority queues, and double-ended queues (deque).",
+      "difficulty_tier": 2,
+      "prerequisites": ["ds.arrays_lists"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "queue_as_list",
+          "description": "Implements queue using list.pop(0) without understanding the O(n) cost, instead of using collections.deque.",
+          "indicators": [
+            "Uses list.pop(0) for dequeue operation",
+            "Doesn't know about collections.deque",
+            "Cannot explain why pop(0) is slow on a list"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Benchmark list.pop(0) vs deque.popleft() for 100,000 operations"
+        },
+        {
+          "id": "priority_queue_sorting",
+          "description": "Implements priority queue by sorting the entire list on every insert instead of using a heap.",
+          "indicators": [
+            "Sorts the queue after each enqueue",
+            "Doesn't know about heapq module",
+            "Cannot explain why heap-based priority queue is more efficient"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Compare emergency room triage to sorting all patients every time a new one arrives"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 45
+      },
+      "teaching_contexts": [
+        "print job queue",
+        "customer service ticket system",
+        "BFS level-order traversal"
+      ],
+      "test_contexts": [
+        "task scheduler with priorities",
+        "sliding window using deque",
+        "hot potato simulation (circular queue)",
+        "message broker with multiple consumers",
+        "rate limiter using token bucket queue"
+      ],
+      "tags": ["queue", "FIFO", "deque", "priority-queue"],
+      "base_hours": 1.5
+    },
+    {
+      "id": "ds.hash_maps",
+      "name": "Hash Maps",
+      "domain": "ds",
+      "description": "Key-value data structure using hash functions. Hash collisions, load factors, rehashing, and the trade-offs between hash maps and other lookup structures.",
+      "difficulty_tier": 2,
+      "prerequisites": ["ds.arrays_lists"],
+      "transfers_to": [
+        {
+          "target": "web.database_queries",
+          "strength": 0.3,
+          "type": "analogous",
+          "description": "Database indexing works on similar principles to hash maps. Hash map understanding helps with query optimization and index design."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "hash_collision_ignored",
+          "description": "Assumes hash functions never produce collisions, ignoring the need for collision resolution strategies.",
+          "indicators": [
+            "Cannot explain what happens when two keys hash to the same bucket",
+            "Doesn't know about chaining or open addressing",
+            "Assumes O(1) lookup is guaranteed regardless of load factor"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Walk through inserting keys that hash to the same bucket, ask what happens"
+        },
+        {
+          "id": "unhashable_keys",
+          "description": "Tries to use mutable objects (lists, dicts) as dictionary keys without understanding hashability requirements.",
+          "indicators": [
+            "Gets TypeError: unhashable type and doesn't know why",
+            "Cannot explain why lists can't be dictionary keys",
+            "Doesn't understand the relationship between __hash__ and __eq__"
+          ],
+          "remediation_strategy": "socratic",
+          "example_trigger": "Try to use a list as a dict key, then ask why tuples work but lists don't"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "word frequency counter",
+        "phone book lookup",
+        "caching with dictionaries"
+      ],
+      "test_contexts": [
+        "LRU cache implementation",
+        "two-sum problem",
+        "anagram grouping",
+        "consistent hashing for distributed systems",
+        "spell checker with suggestions",
+        "custom hash table from scratch"
+      ],
+      "tags": ["hash-map", "dictionary", "hashing", "key-value", "collision"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "ds.linked_lists",
+      "name": "Linked Lists",
+      "domain": "ds",
+      "description": "Node-based sequential data structure with singly and doubly linked variants. Pointer manipulation, insertion/deletion at arbitrary positions, and comparison with arrays.",
+      "difficulty_tier": 2,
+      "prerequisites": ["ds.arrays_lists"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "linked_list_indexing",
+          "description": "Expects O(1) random access like arrays, not realizing traversal from head is required.",
+          "indicators": [
+            "Tries to access the nth element directly",
+            "Doesn't understand why linked lists don't support indexing",
+            "Chooses linked list when random access is the primary operation"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Compare finding the 50th car in a train (walk through) vs 50th seat in a theater (row/column)"
+        },
+        {
+          "id": "pointer_lost",
+          "description": "Loses reference to nodes during insertion or deletion by overwriting pointers in the wrong order.",
+          "indicators": [
+            "Node becomes unreachable after insertion",
+            "Deletion causes the list to break in the middle",
+            "Cannot draw the pointer reassignment steps on paper"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Insert a node into the middle of a linked list, drawing each pointer change step by step"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "building a linked list from scratch",
+        "inserting and deleting nodes",
+        "comparing with array performance"
+      ],
+      "test_contexts": [
+        "reverse a linked list",
+        "detect a cycle in a linked list",
+        "merge two sorted linked lists",
+        "implement an LRU cache (with hash map)",
+        "remove nth node from end in one pass"
+      ],
+      "tags": ["linked-list", "nodes", "pointers", "sequential"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "ds.trees",
+      "name": "Trees (Binary)",
+      "domain": "ds",
+      "description": "Hierarchical data structure with root, parent, and child nodes. Binary trees, binary search trees, node insertion, deletion, and search. Height, depth, and balance concepts.",
+      "difficulty_tier": 3,
+      "prerequisites": ["ds.linked_lists"],
+      "transfers_to": [
+        {
+          "target": "ds.graphs",
+          "strength": 0.5,
+          "type": "prerequisite",
+          "description": "Trees are a restricted form of graphs. Tree concepts like traversal, nodes, and edges generalize directly to graph algorithms."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "bst_vs_binary_tree",
+          "description": "Confuses binary tree with binary search tree, assuming all binary trees have the BST ordering property.",
+          "indicators": [
+            "Assumes left child is always smaller in any binary tree",
+            "Cannot explain the difference between a heap and a BST",
+            "Applies BST search logic to a non-BST binary tree"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Show a binary tree that is NOT a BST, ask learner to search for a value"
+        },
+        {
+          "id": "tree_balance_ignored",
+          "description": "Doesn't consider tree balance, leading to degenerate trees with O(n) operations.",
+          "indicators": [
+            "Inserts sorted data into a BST without balancing",
+            "Doesn't understand why a skewed tree is basically a linked list",
+            "Cannot explain what balanced means or why it matters"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Insert [1,2,3,4,5] into a BST, draw the result, compare performance with a balanced version"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "file system directory structure",
+        "BST insert and search",
+        "family tree representation"
+      ],
+      "test_contexts": [
+        "validate BST property",
+        "find lowest common ancestor",
+        "serialize and deserialize a binary tree",
+        "check if two trees are identical",
+        "find all paths summing to a target"
+      ],
+      "tags": ["trees", "BST", "binary-tree", "hierarchical", "nodes"],
+      "base_hours": 3.0
+    },
+    {
+      "id": "ds.tree_traversal",
+      "name": "Tree Traversal",
+      "domain": "ds",
+      "description": "Algorithms for visiting all nodes in a tree: in-order, pre-order, post-order (DFS), and level-order (BFS). Recursive and iterative implementations.",
+      "difficulty_tier": 3,
+      "prerequisites": ["ds.trees"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "traversal_order_confused",
+          "description": "Mixes up in-order, pre-order, and post-order traversal. Cannot predict which nodes are visited in which order.",
+          "indicators": [
+            "Cannot hand-trace traversal order on a given tree",
+            "Confuses when the root is 'visited' in each traversal type",
+            "Doesn't know that in-order on a BST gives sorted output"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Given a tree, ask for in-order, pre-order, and post-order results — compare answers"
+        },
+        {
+          "id": "bfs_vs_dfs_choice",
+          "description": "Doesn't know when to use BFS vs DFS, or uses the wrong one for the problem at hand.",
+          "indicators": [
+            "Uses DFS for shortest path in unweighted tree",
+            "Uses BFS when depth-first would be more memory efficient",
+            "Cannot explain the space complexity difference"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Find the shortest path from root to a target — ask if DFS or BFS is better and why"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "printing tree nodes in sorted order",
+        "copying a tree structure",
+        "level-by-level tree display"
+      ],
+      "test_contexts": [
+        "directory size calculator (post-order)",
+        "expression tree evaluator",
+        "zigzag level-order traversal",
+        "iterative in-order traversal with explicit stack",
+        "right side view of a binary tree"
+      ],
+      "tags": ["traversal", "DFS", "BFS", "in-order", "pre-order", "post-order"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "ds.graphs",
+      "name": "Graphs",
+      "domain": "ds",
+      "description": "Non-linear data structure with vertices and edges. Directed and undirected graphs, adjacency lists and matrices, DFS/BFS on graphs, cycle detection, and topological sort.",
+      "difficulty_tier": 4,
+      "prerequisites": ["ds.trees", "ds.hash_maps"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "graph_visited_tracking",
+          "description": "Forgets to track visited nodes in graph traversal, causing infinite loops on cyclic graphs.",
+          "indicators": [
+            "DFS/BFS runs forever on a graph with cycles",
+            "Doesn't add a visited set to traversal algorithm",
+            "Works fine on trees but breaks on general graphs"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Run DFS on a graph with a cycle without a visited set, observe the infinite loop"
+        },
+        {
+          "id": "adjacency_representation_choice",
+          "description": "Always uses adjacency matrix regardless of graph density, wasting memory on sparse graphs.",
+          "indicators": [
+            "Uses a 2D array for a graph with 10,000 nodes and 50 edges",
+            "Cannot explain when adjacency list is better than matrix",
+            "Doesn't consider space complexity of representation"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Calculate memory for a social network graph as both matrix and list, compare"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 3,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 21
+      },
+      "teaching_contexts": [
+        "social network friend connections",
+        "city road map pathfinding",
+        "course prerequisite ordering"
+      ],
+      "test_contexts": [
+        "detect cycle in a directed graph",
+        "topological sort for build dependencies",
+        "shortest path in unweighted graph",
+        "connected components in undirected graph",
+        "clone a graph",
+        "bipartite graph check"
+      ],
+      "tags": ["graphs", "DFS", "BFS", "adjacency", "topological-sort", "cycles"],
+      "base_hours": 3.5
+    },
+    {
+      "id": "ds.sorting",
+      "name": "Sorting Algorithms",
+      "domain": "ds",
+      "description": "Comparison-based sorting algorithms: bubble sort, selection sort, insertion sort, merge sort, quicksort. Time and space complexity analysis, stability, and choosing the right algorithm.",
+      "difficulty_tier": 2,
+      "prerequisites": ["ds.arrays_lists"],
+      "transfers_to": [
+        {
+          "target": "ds.searching",
+          "strength": 0.4,
+          "type": "prerequisite",
+          "description": "Binary search requires sorted data. Understanding sorting is a prerequisite for efficient search algorithms."
+        }
+      ],
+      "common_misconceptions": [
+        {
+          "id": "always_use_quicksort",
+          "description": "Believes quicksort is always the best choice, ignoring worst cases and stability requirements.",
+          "indicators": [
+            "Cannot name a scenario where merge sort is better",
+            "Doesn't know quicksort is O(n^2) worst case",
+            "Ignores stability when sorting objects with multiple keys"
+          ],
+          "remediation_strategy": "socratic",
+          "example_trigger": "Sort a nearly-sorted array with quicksort vs insertion sort, compare performance"
+        },
+        {
+          "id": "sort_stability_ignored",
+          "description": "Doesn't understand sort stability or why it matters when sorting by multiple keys.",
+          "indicators": [
+            "Cannot define what a stable sort is",
+            "Doesn't realize why Python's sort is stable by design",
+            "Loses secondary ordering when sorting by primary key"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Sort students by grade then by name — show how unstable sort scrambles the name order"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "sorting a hand of playing cards",
+        "merge sort step-by-step visualization",
+        "quicksort partition walkthrough"
+      ],
+      "test_contexts": [
+        "sort a linked list",
+        "k-th largest element in unsorted array",
+        "sort colors (Dutch national flag)",
+        "merge intervals",
+        "custom comparator sorting"
+      ],
+      "tags": ["sorting", "algorithms", "complexity", "comparison", "divide-and-conquer"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "ds.searching",
+      "name": "Search Algorithms",
+      "domain": "ds",
+      "description": "Linear search, binary search, and their variants. Searching in sorted and unsorted data, search space reduction, and applying binary search to non-obvious problems.",
+      "difficulty_tier": 2,
+      "prerequisites": ["ds.arrays_lists", "ds.sorting"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "binary_search_off_by_one",
+          "description": "Gets boundary conditions wrong in binary search, causing infinite loops or missed elements.",
+          "indicators": [
+            "Uses left <= right vs left < right inconsistently",
+            "Off-by-one on mid calculation or boundary updates",
+            "Binary search misses the target element at boundaries"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Implement binary search, test with array [1], [1,2], and target at first/last position"
+        },
+        {
+          "id": "binary_search_unsorted",
+          "description": "Applies binary search to unsorted data without realizing it requires a sorted input.",
+          "indicators": [
+            "Tries binary search on an unsorted array",
+            "Gets wrong results and cannot explain why",
+            "Doesn't check the sorted precondition"
+          ],
+          "remediation_strategy": "socratic",
+          "example_trigger": "Run binary search on [3,1,4,1,5,9] looking for 4 — ask why it might fail"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "guessing game with binary search",
+        "searching a sorted phone book",
+        "find element in sorted array"
+      ],
+      "test_contexts": [
+        "search in rotated sorted array",
+        "find first/last occurrence in sorted array",
+        "binary search on answer (minimum capacity)",
+        "search a 2D sorted matrix",
+        "peak element finder"
+      ],
+      "tags": ["searching", "binary-search", "linear-search", "algorithms"],
+      "base_hours": 2.0
+    },
+    {
+      "id": "web.http",
+      "name": "HTTP Protocol",
+      "domain": "web",
+      "description": "The foundation of web communication: HTTP methods (GET, POST, PUT, DELETE), status codes, headers, and the stateless nature of the protocol.",
+      "difficulty_tier": 1,
+      "prerequisites": [],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "get_post_only_difference",
+          "description": "Thinks the only difference between GET and POST is that POST has a body, missing the semantic and caching implications.",
+          "indicators": [
+            "Uses GET for operations that modify data",
+            "Doesn't understand idempotency of GET vs non-idempotency of POST",
+            "Cannot explain why GET requests are cacheable"
+          ],
+          "remediation_strategy": "socratic",
+          "example_trigger": "Ask why a browser bookmark works for GET but not POST, and what happens if you refresh a POST"
+        },
+        {
+          "id": "status_code_guessing",
+          "description": "Memorizes a few status codes but doesn't understand the categories (2xx, 3xx, 4xx, 5xx) or when to use each.",
+          "indicators": [
+            "Returns 200 for everything including errors",
+            "Cannot explain the difference between 401 and 403",
+            "Doesn't know what 3xx codes are for"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Given 5 API scenarios, assign the correct status code and explain why"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 60
+      },
+      "teaching_contexts": [
+        "making requests with curl",
+        "browser developer tools network tab",
+        "reading HTTP headers of a web page"
+      ],
+      "test_contexts": [
+        "design the HTTP interface for a file upload service",
+        "debug a failing API call from status code and headers",
+        "explain caching behavior based on headers",
+        "choose correct methods for a CRUD application",
+        "analyze a redirect chain"
+      ],
+      "tags": ["HTTP", "protocol", "methods", "status-codes", "headers"],
+      "base_hours": 1.5
+    },
+    {
+      "id": "web.request_response",
+      "name": "Request/Response Cycle",
+      "domain": "web",
+      "description": "The full lifecycle of a web request: DNS resolution, TCP connection, request formation, server processing, response, and rendering. Understanding what happens between clicking a link and seeing a page.",
+      "difficulty_tier": 2,
+      "prerequisites": ["web.http"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "request_is_instant",
+          "description": "Treats HTTP requests as instantaneous, ignoring network latency, DNS lookup, and connection overhead.",
+          "indicators": [
+            "Doesn't consider network latency in application design",
+            "Makes many sequential requests when batching would be better",
+            "Surprised by slow responses on first request (cold DNS)"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Trace a request through DNS, TCP handshake, TLS, and response — time each step"
+        },
+        {
+          "id": "stateful_http_assumption",
+          "description": "Assumes the server remembers previous requests without explicit session management.",
+          "indicators": [
+            "Doesn't send authentication token on each request",
+            "Expects server to know the user without cookies or headers",
+            "Confused why logging in on one endpoint doesn't persist to another"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Compare HTTP to a restaurant where the waiter has amnesia between each visit to your table"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 45
+      },
+      "teaching_contexts": [
+        "tracing a request in browser dev tools",
+        "building a minimal HTTP server",
+        "request/response logging middleware"
+      ],
+      "test_contexts": [
+        "diagnose slow page load from waterfall chart",
+        "design request flow for a multi-step form",
+        "explain how session cookies maintain state",
+        "optimize an API with too many round trips",
+        "debug a CORS preflight failure"
+      ],
+      "tags": ["request", "response", "lifecycle", "latency", "stateless"],
+      "base_hours": 2.0
+    },
+    {
+      "id": "web.rest_apis",
+      "name": "REST APIs",
+      "domain": "web",
+      "description": "RESTful API design principles: resource-based URLs, proper HTTP method usage, statelessness, JSON payloads, and the difference between REST and other API styles.",
+      "difficulty_tier": 2,
+      "prerequisites": ["web.http", "web.request_response"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "rest_vs_rpc",
+          "description": "Designs RPC-style endpoints (verbs in URLs) instead of resource-oriented REST endpoints.",
+          "indicators": [
+            "URLs like /getUser, /createOrder, /deleteItem",
+            "Uses POST for everything instead of appropriate HTTP methods",
+            "Cannot explain the difference between REST and RPC"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Refactor /getUserById?id=5 and /deleteUser?id=5 into proper REST endpoints"
+        },
+        {
+          "id": "rest_is_just_json",
+          "description": "Thinks REST means any API that returns JSON, ignoring the architectural constraints.",
+          "indicators": [
+            "Claims any JSON API is RESTful",
+            "Cannot name REST constraints beyond 'uses HTTP'",
+            "Doesn't understand HATEOAS or resource linking"
+          ],
+          "remediation_strategy": "socratic",
+          "example_trigger": "Show a JSON-RPC endpoint and ask if it's RESTful — probe why or why not"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 45
+      },
+      "teaching_contexts": [
+        "designing a todo list API",
+        "CRUD operations on a blog post resource",
+        "exploring a public API with Postman"
+      ],
+      "test_contexts": [
+        "design REST API for a library system",
+        "review and critique a poorly designed API",
+        "handle nested resources (comments on a post)",
+        "versioning strategy for a public API",
+        "pagination and filtering design",
+        "batch operations in a REST API"
+      ],
+      "tags": ["REST", "API", "resources", "endpoints", "CRUD"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "web.auth",
+      "name": "Authentication Basics",
+      "domain": "web",
+      "description": "User authentication mechanisms: session-based auth, token-based auth (JWT), OAuth basics, password hashing, and the difference between authentication and authorization.",
+      "difficulty_tier": 2,
+      "prerequisites": ["web.rest_apis"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "auth_vs_authz",
+          "description": "Conflates authentication (who are you?) with authorization (what can you do?), implementing them as one system.",
+          "indicators": [
+            "Uses the same middleware for login and permission checks",
+            "Cannot explain the difference between the two",
+            "Doesn't separate identity verification from access control"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Airport security: passport check (authentication) vs boarding pass check (authorization)"
+        },
+        {
+          "id": "jwt_stored_in_localstorage",
+          "description": "Stores JWT in localStorage, exposing it to XSS attacks, instead of using httpOnly cookies.",
+          "indicators": [
+            "Puts tokens in localStorage without considering XSS",
+            "Doesn't know what httpOnly cookie flag does",
+            "Cannot explain the security trade-offs of different storage options"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Demonstrate a simple XSS attack stealing a token from localStorage"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "building a login endpoint",
+        "JWT creation and verification",
+        "password hashing with bcrypt"
+      ],
+      "test_contexts": [
+        "design auth flow for a mobile app",
+        "implement refresh token rotation",
+        "add role-based access control to existing API",
+        "debug a token expiration issue",
+        "secure a webhook endpoint"
+      ],
+      "tags": ["authentication", "authorization", "JWT", "security", "sessions"],
+      "base_hours": 2.0
+    },
+    {
+      "id": "web.database_queries",
+      "name": "Database Queries",
+      "domain": "web",
+      "description": "Writing SQL queries for web applications: SELECT, INSERT, UPDATE, DELETE, JOINs, indexing, and preventing SQL injection. ORM basics.",
+      "difficulty_tier": 2,
+      "prerequisites": ["web.rest_apis"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "join_confusion",
+          "description": "Confuses JOIN types, especially the difference between INNER JOIN and LEFT JOIN, leading to missing or duplicated data.",
+          "indicators": [
+            "Uses INNER JOIN when LEFT JOIN is needed, losing unmatched rows",
+            "Doesn't understand why LEFT JOIN produces NULLs",
+            "Cannot visualize Venn diagram of join types"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Query users and their orders — ask what happens to users with no orders under INNER vs LEFT JOIN"
+        },
+        {
+          "id": "sql_injection_unaware",
+          "description": "Concatenates user input directly into SQL queries instead of using parameterized queries.",
+          "indicators": [
+            "Builds SQL with f-strings or string concatenation",
+            "Doesn't know what SQL injection is",
+            "Cannot explain why parameterized queries are safer"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Show a login form with string-concatenated SQL, demonstrate how to bypass it"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "querying a users table",
+        "joining orders with products",
+        "using an ORM to avoid raw SQL"
+      ],
+      "test_contexts": [
+        "optimize a slow query with proper indexing",
+        "write a report query with GROUP BY and HAVING",
+        "migrate raw SQL to parameterized queries",
+        "design schema for a many-to-many relationship",
+        "debug an N+1 query problem in an ORM"
+      ],
+      "tags": ["SQL", "database", "queries", "joins", "ORM", "injection"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "web.api_design",
+      "name": "API Design",
+      "domain": "web",
+      "description": "Principles for designing clean, consistent, and developer-friendly APIs: naming conventions, error formats, pagination patterns, versioning, and documentation.",
+      "difficulty_tier": 3,
+      "prerequisites": ["web.rest_apis"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "api_design_bikeshedding",
+          "description": "Spends excessive time on URL naming while ignoring more important design aspects like error consistency and pagination.",
+          "indicators": [
+            "Debates plural vs singular nouns but has no error format standard",
+            "Inconsistent error responses across endpoints",
+            "No pagination on list endpoints that could return thousands of items"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Review an API with perfect URLs but inconsistent errors and no pagination — prioritize fixes"
+        },
+        {
+          "id": "breaking_changes_unversioned",
+          "description": "Makes breaking changes to a public API without versioning, breaking existing clients.",
+          "indicators": [
+            "Removes or renames fields without version bump",
+            "No versioning strategy in place",
+            "Cannot explain what constitutes a breaking change"
+          ],
+          "remediation_strategy": "analogy",
+          "example_trigger": "Your API has 100 clients. You want to rename a field. What happens to the clients?"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "designing a consistent error response format",
+        "adding pagination to a list endpoint",
+        "API versioning strategies"
+      ],
+      "test_contexts": [
+        "review and improve a messy API specification",
+        "design an API for a multi-tenant SaaS product",
+        "handle backward-compatible schema evolution",
+        "design idempotent endpoints for payment processing",
+        "create API documentation from endpoint definitions"
+      ],
+      "tags": ["API-design", "versioning", "pagination", "consistency", "DX"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "web.middleware",
+      "name": "Middleware Concepts",
+      "domain": "web",
+      "description": "Software that sits between request and response in a web framework's pipeline. Logging, authentication, CORS, rate limiting, and the middleware chain pattern.",
+      "difficulty_tier": 3,
+      "prerequisites": ["web.request_response"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "middleware_order_ignored",
+          "description": "Doesn't realize middleware execution order matters, leading to bugs like auth running after the handler.",
+          "indicators": [
+            "Registers auth middleware after route handlers",
+            "Logging middleware at the wrong position misses some requests",
+            "Cannot explain the middleware pipeline as a chain"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Register auth middleware after a route — observe that unauthenticated requests get through"
+        },
+        {
+          "id": "middleware_too_broad",
+          "description": "Applies middleware globally when it should only run on specific routes, adding unnecessary overhead or security issues.",
+          "indicators": [
+            "Auth middleware blocks public health check endpoints",
+            "Rate limiting applied uniformly when some routes need different limits",
+            "Cannot scope middleware to specific route groups"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Auth middleware blocks the login endpoint — ask how to fix it"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 30
+      },
+      "teaching_contexts": [
+        "request logging middleware",
+        "simple auth check middleware",
+        "CORS middleware configuration"
+      ],
+      "test_contexts": [
+        "build a rate limiter middleware",
+        "request timing and metrics middleware",
+        "error handling middleware that formats responses",
+        "middleware that injects user context from JWT",
+        "compose middleware for different route groups"
+      ],
+      "tags": ["middleware", "pipeline", "request-processing", "chain-of-responsibility"],
+      "base_hours": 2.5
+    },
+    {
+      "id": "web.error_handling",
+      "name": "Error Handling in APIs",
+      "domain": "web",
+      "description": "Structured error responses in web APIs: consistent error formats, proper HTTP status codes, error logging, validation errors, and graceful degradation.",
+      "difficulty_tier": 2,
+      "prerequisites": ["web.rest_apis"],
+      "transfers_to": [],
+      "common_misconceptions": [
+        {
+          "id": "errors_as_200",
+          "description": "Returns errors with HTTP 200 status and an error flag in the body, making client-side error handling unreliable.",
+          "indicators": [
+            "All responses return 200 regardless of outcome",
+            "Error information only in the response body",
+            "Client must parse body to detect errors instead of checking status code"
+          ],
+          "remediation_strategy": "worked_examples",
+          "example_trigger": "Show a 200-with-error-flag API, try to write a generic error handler for it — experience the pain"
+        },
+        {
+          "id": "stack_trace_in_production",
+          "description": "Exposes internal stack traces and system details in production error responses, creating security risks.",
+          "indicators": [
+            "API returns full Python traceback to the client",
+            "Error messages include file paths or database details",
+            "No difference between development and production error output"
+          ],
+          "remediation_strategy": "debugging_exercise",
+          "example_trigger": "Show an error response with a full traceback — ask what an attacker could learn from it"
+        }
+      ],
+      "mastery_criteria": {
+        "transfer_tests_required": 2,
+        "minimum_score": 0.7,
+        "explanation_required": true,
+        "time_decay_days": 45
+      },
+      "teaching_contexts": [
+        "designing a standard error response format",
+        "mapping exceptions to status codes",
+        "validation error aggregation"
+      ],
+      "test_contexts": [
+        "implement global error handler for a Flask/FastAPI app",
+        "design error responses for a payment API",
+        "handle partial failure in a batch operation",
+        "add structured logging alongside error responses",
+        "return user-friendly errors while logging detailed ones"
+      ],
+      "tags": ["error-handling", "status-codes", "validation", "logging", "API"],
+      "base_hours": 2.0
+    }
+  ]
+}

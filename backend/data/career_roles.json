@@ -1,0 +1,495 @@
+{
+  "roles": [
+    {
+      "id": "junior_python_developer",
+      "title": "Junior Python Developer",
+      "description": "Entry-level Python developer writing scripts, utilities, and small applications. Comfortable with core language features, object-oriented patterns, and basic file operations.",
+      "level": "entry",
+      "required_skills": [
+        {
+          "name": "Python Fundamentals",
+          "concept_ids": [
+            "python.variables",
+            "python.control_flow",
+            "python.functions",
+            "python.scope",
+            "python.classes",
+            "python.exceptions",
+            "python.file_io",
+            "python.modules"
+          ],
+          "minimum_mastery": 0.7,
+          "weight": 0.60
+        },
+        {
+          "name": "Python OOP",
+          "concept_ids": [
+            "python.classes",
+            "python.inheritance"
+          ],
+          "minimum_mastery": 0.6,
+          "weight": 0.25
+        },
+        {
+          "name": "Python File Handling",
+          "concept_ids": [
+            "python.file_io",
+            "python.exceptions",
+            "python.modules"
+          ],
+          "minimum_mastery": 0.6,
+          "weight": 0.15
+        }
+      ],
+      "nice_to_have_skills": [
+        {
+          "name": "List Comprehensions",
+          "concept_ids": ["python.list_comp"],
+          "minimum_mastery": 0.5,
+          "weight": 0.05
+        },
+        {
+          "name": "Basic Data Structures",
+          "concept_ids": ["ds.arrays_lists", "ds.hash_maps"],
+          "minimum_mastery": 0.4,
+          "weight": 0.05
+        }
+      ],
+      "market_demand": "high",
+      "salary_range": {
+        "min": 55000,
+        "max": 75000,
+        "currency": "USD"
+      },
+      "growth_trend": "growing",
+      "related_roles": [
+        "junior_backend_engineer",
+        "data_structures_ta",
+        "junior_fullstack_developer"
+      ]
+    },
+    {
+      "id": "junior_backend_engineer",
+      "title": "Junior Backend Engineer",
+      "description": "Entry-level backend developer building APIs, services, and data pipelines. Works with databases, authentication, and error handling in production web systems.",
+      "level": "entry",
+      "required_skills": [
+        {
+          "name": "Python Fundamentals",
+          "concept_ids": [
+            "python.variables",
+            "python.control_flow",
+            "python.functions",
+            "python.scope",
+            "python.classes",
+            "python.exceptions",
+            "python.file_io",
+            "python.modules"
+          ],
+          "minimum_mastery": 0.7,
+          "weight": 0.25
+        },
+        {
+          "name": "Advanced Python",
+          "concept_ids": [
+            "python.closures",
+            "python.decorators",
+            "python.generators",
+            "python.async"
+          ],
+          "minimum_mastery": 0.6,
+          "weight": 0.20
+        },
+        {
+          "name": "Web Fundamentals",
+          "concept_ids": [
+            "web.http",
+            "web.rest_apis",
+            "web.request_response",
+            "web.auth",
+            "web.error_handling"
+          ],
+          "minimum_mastery": 0.7,
+          "weight": 0.30
+        },
+        {
+          "name": "Data Handling",
+          "concept_ids": [
+            "web.database_queries",
+            "ds.hash_maps",
+            "ds.arrays_lists"
+          ],
+          "minimum_mastery": 0.6,
+          "weight": 0.15
+        },
+        {
+          "name": "API Design",
+          "concept_ids": [
+            "web.api_design",
+            "web.middleware"
+          ],
+          "minimum_mastery": 0.6,
+          "weight": 0.10
+        }
+      ],
+      "nice_to_have_skills": [
+        {
+          "name": "Algorithm Knowledge",
+          "concept_ids": ["ds.sorting", "ds.searching"],
+          "minimum_mastery": 0.5,
+          "weight": 0.05
+        }
+      ],
+      "market_demand": "high",
+      "salary_range": {
+        "min": 65000,
+        "max": 95000,
+        "currency": "USD"
+      },
+      "growth_trend": "growing",
+      "related_roles": [
+        "junior_fullstack_developer",
+        "junior_python_developer",
+        "ml_engineer_entry"
+      ]
+    },
+    {
+      "id": "data_structures_ta",
+      "title": "Data Structures Teaching Assistant",
+      "description": "Teaching assistant for a university data structures course. Requires deep understanding of both Python and core data structures to explain concepts clearly and grade assignments.",
+      "level": "entry",
+      "required_skills": [
+        {
+          "name": "Python Mastery",
+          "concept_ids": [
+            "python.variables",
+            "python.control_flow",
+            "python.functions",
+            "python.scope",
+            "python.classes",
+            "python.inheritance",
+            "python.exceptions",
+            "python.recursion",
+            "python.file_io",
+            "python.modules"
+          ],
+          "minimum_mastery": 0.75,
+          "weight": 0.30
+        },
+        {
+          "name": "Data Structures Core",
+          "concept_ids": [
+            "ds.arrays_lists",
+            "ds.hash_maps",
+            "ds.trees",
+            "ds.tree_traversal",
+            "ds.stacks",
+            "ds.queues",
+            "ds.linked_lists",
+            "ds.graphs"
+          ],
+          "minimum_mastery": 0.7,
+          "weight": 0.40
+        },
+        {
+          "name": "Algorithm Knowledge",
+          "concept_ids": [
+            "ds.sorting",
+            "ds.searching",
+            "python.recursion"
+          ],
+          "minimum_mastery": 0.7,
+          "weight": 0.30
+        }
+      ],
+      "nice_to_have_skills": [
+        {
+          "name": "Advanced Python Patterns",
+          "concept_ids": ["python.generators", "python.closures"],
+          "minimum_mastery": 0.5,
+          "weight": 0.05
+        }
+      ],
+      "market_demand": "medium",
+      "salary_range": {
+        "min": 40000,
+        "max": 55000,
+        "currency": "USD"
+      },
+      "growth_trend": "stable",
+      "related_roles": [
+        "junior_python_developer",
+        "ml_engineer_entry"
+      ]
+    },
+    {
+      "id": "junior_fullstack_developer",
+      "title": "Junior Fullstack Developer",
+      "description": "Mid-level developer comfortable across the entire stack. Builds frontend interfaces, backend APIs, and understands how data flows through a web application end to end.",
+      "level": "mid",
+      "required_skills": [
+        {
+          "name": "Python Full",
+          "concept_ids": [
+            "python.variables",
+            "python.control_flow",
+            "python.functions",
+            "python.scope",
+            "python.classes",
+            "python.inheritance",
+            "python.exceptions",
+            "python.closures",
+            "python.decorators",
+            "python.file_io",
+            "python.modules",
+            "python.async"
+          ],
+          "minimum_mastery": 0.7,
+          "weight": 0.25
+        },
+        {
+          "name": "Web Full",
+          "concept_ids": [
+            "web.http",
+            "web.rest_apis",
+            "web.request_response",
+            "web.auth",
+            "web.error_handling",
+            "web.database_queries",
+            "web.middleware",
+            "web.api_design"
+          ],
+          "minimum_mastery": 0.7,
+          "weight": 0.35
+        },
+        {
+          "name": "Frontend Basics",
+          "concept_ids": [
+            "web.http",
+            "web.rest_apis",
+            "web.request_response"
+          ],
+          "minimum_mastery": 0.7,
+          "weight": 0.15
+        },
+        {
+          "name": "Data Structures",
+          "concept_ids": [
+            "ds.arrays_lists",
+            "ds.hash_maps",
+            "ds.trees"
+          ],
+          "minimum_mastery": 0.6,
+          "weight": 0.15
+        },
+        {
+          "name": "System Design",
+          "concept_ids": [
+            "web.api_design",
+            "web.middleware",
+            "web.error_handling"
+          ],
+          "minimum_mastery": 0.6,
+          "weight": 0.10
+        }
+      ],
+      "nice_to_have_skills": [
+        {
+          "name": "Advanced Data Structures",
+          "concept_ids": ["ds.graphs", "ds.tree_traversal"],
+          "minimum_mastery": 0.5,
+          "weight": 0.05
+        },
+        {
+          "name": "Generators and Async",
+          "concept_ids": ["python.generators", "python.async"],
+          "minimum_mastery": 0.5,
+          "weight": 0.05
+        }
+      ],
+      "market_demand": "high",
+      "salary_range": {
+        "min": 70000,
+        "max": 100000,
+        "currency": "USD"
+      },
+      "growth_trend": "growing",
+      "related_roles": [
+        "junior_backend_engineer",
+        "ml_engineer_entry"
+      ]
+    },
+    {
+      "id": "ml_engineer_entry",
+      "title": "Entry-Level ML Engineer",
+      "description": "Mid-level engineer bridging software engineering and machine learning. Requires strong Python fundamentals, solid data structures knowledge, and comfort with advanced language features like generators and decorators.",
+      "level": "mid",
+      "required_skills": [
+        {
+          "name": "Python Advanced",
+          "concept_ids": [
+            "python.variables",
+            "python.control_flow",
+            "python.functions",
+            "python.scope",
+            "python.classes",
+            "python.inheritance",
+            "python.closures",
+            "python.decorators",
+            "python.generators",
+            "python.recursion",
+            "python.async",
+            "python.list_comp"
+          ],
+          "minimum_mastery": 0.75,
+          "weight": 0.30
+        },
+        {
+          "name": "DS & Algorithms",
+          "concept_ids": [
+            "ds.arrays_lists",
+            "ds.hash_maps",
+            "ds.trees",
+            "ds.tree_traversal",
+            "ds.graphs",
+            "ds.sorting",
+            "ds.searching"
+          ],
+          "minimum_mastery": 0.7,
+          "weight": 0.35
+        },
+        {
+          "name": "Math Foundations",
+          "concept_ids": [
+            "python.recursion",
+            "python.generators",
+            "ds.trees",
+            "ds.graphs"
+          ],
+          "minimum_mastery": 0.7,
+          "weight": 0.20
+        },
+        {
+          "name": "ML Concepts",
+          "concept_ids": [
+            "python.classes",
+            "python.inheritance",
+            "python.decorators",
+            "ds.arrays_lists",
+            "ds.hash_maps"
+          ],
+          "minimum_mastery": 0.6,
+          "weight": 0.15
+        }
+      ],
+      "nice_to_have_skills": [
+        {
+          "name": "Web Integration",
+          "concept_ids": ["web.rest_apis", "web.http"],
+          "minimum_mastery": 0.5,
+          "weight": 0.05
+        },
+        {
+          "name": "File and Module Handling",
+          "concept_ids": ["python.file_io", "python.modules", "python.exceptions"],
+          "minimum_mastery": 0.5,
+          "weight": 0.05
+        }
+      ],
+      "market_demand": "high",
+      "salary_range": {
+        "min": 80000,
+        "max": 120000,
+        "currency": "USD"
+      },
+      "growth_trend": "growing",
+      "related_roles": [
+        "junior_backend_engineer",
+        "data_structures_ta",
+        "junior_fullstack_developer"
+      ]
+    },
+    {
+      "id": "quantitative_analyst",
+      "title": "Junior Quantitative Analyst",
+      "description": "Entry-level quant building pricing models, back-testing trading strategies, and performing statistical analysis. Requires strong Python fluency, solid algorithmic thinking, and comfort with data pipelines.",
+      "level": "mid",
+      "required_skills": [
+        {
+          "name": "Python Fluency",
+          "concept_ids": [
+            "python.variables",
+            "python.control_flow",
+            "python.functions",
+            "python.scope",
+            "python.classes",
+            "python.closures",
+            "python.decorators",
+            "python.generators",
+            "python.recursion",
+            "python.list_comp"
+          ],
+          "minimum_mastery": 0.75,
+          "weight": 0.35
+        },
+        {
+          "name": "Algorithms & Data Structures",
+          "concept_ids": [
+            "ds.arrays_lists",
+            "ds.hash_maps",
+            "ds.trees",
+            "ds.sorting",
+            "ds.searching"
+          ],
+          "minimum_mastery": 0.70,
+          "weight": 0.30
+        },
+        {
+          "name": "Numerical & Recursive Thinking",
+          "concept_ids": [
+            "python.recursion",
+            "ds.tree_traversal",
+            "ds.graphs"
+          ],
+          "minimum_mastery": 0.70,
+          "weight": 0.20
+        },
+        {
+          "name": "Data Pipeline Foundations",
+          "concept_ids": [
+            "python.file_io",
+            "python.exceptions",
+            "python.modules"
+          ],
+          "minimum_mastery": 0.60,
+          "weight": 0.15
+        }
+      ],
+      "nice_to_have_skills": [
+        {
+          "name": "API Integration",
+          "concept_ids": ["web.rest_apis", "web.http"],
+          "minimum_mastery": 0.50,
+          "weight": 0.05
+        },
+        {
+          "name": "Async Programming",
+          "concept_ids": ["python.async"],
+          "minimum_mastery": 0.50,
+          "weight": 0.05
+        }
+      ],
+      "market_demand": "high",
+      "salary_range": {
+        "min": 95000,
+        "max": 150000,
+        "currency": "USD"
+      },
+      "growth_trend": "growing",
+      "related_roles": [
+        "ml_engineer_entry",
+        "data_structures_ta"
+      ]
+    }
+  ]
+}
