@@ -178,12 +178,41 @@ class LLMClient:
         # career role generation
         if "workforce analyst" in lower:
             return self._mock_career_role(prompt)
+        # session summary (memory agent)
+        if "summarize this learning session" in lower:
+            return self._mock_session_summary(prompt)
+        # teaching reflection (memory agent)
+        if "reflecting on a teaching attempt" in lower:
+            return self._mock_teaching_reflection(prompt)
+        # proactive session opener
+        if "welcome back" in lower and "returning learner" in lower:
+            return self._mock_session_opener(prompt)
+        # proactive career direction
+        if "suggest a career direction" in lower:
+            return self._mock_career_suggestion(prompt)
+        # deliberation conflict resolution
+        if "mediator" in lower and "conflicting recommendations" in lower:
+            return self._mock_deliberation_resolution(prompt)
         # emotional analysis (Tier 2)
         if "reading emotional states" in lower or "emotional state" in lower:
             return self._mock_emotional_analysis(prompt)
         # personalized intervention
         if "personalized intervention" in lower:
             return self._mock_personalized_intervention(prompt)
+        # dynamic tools (Chunk 5)
+        if "analogy teaching method" in lower:
+            return self._mock_teach_with_analogy(prompt)
+        if "socratic teacher" in lower:
+            return self._mock_socratic_dialogue(prompt)
+        if "mini_project" in lower or "design_challenge" in lower or "debugging" in lower:
+            if "naturally requires multiple concepts" in lower:
+                return self._mock_composite_exercise(prompt)
+        if "addressing a specific misconception" in lower:
+            return self._mock_address_misconception(prompt)
+        if "realistic work scenario" in lower:
+            return self._mock_real_world_scenario(prompt)
+        if "decomposing a teaching action" in lower:
+            return self._mock_tool_composition(prompt)
         # encouragement
         if "encouraging learning coach" in lower:
             return self._mock_encouragement(prompt)
@@ -677,6 +706,149 @@ class LLMClient:
             "type": "encouragement",
             "message": "You're making progress. Keep going!",
             "action": None,
+        }
+
+    def _mock_deliberation_resolution(self, prompt: str) -> dict:
+        lower = prompt.lower()
+        if "frustrated" in lower:
+            return {
+                "reasoning": "Learner frustration takes priority. Reduce difficulty before pushing content.",
+                "recommendation": "reduce_difficulty",
+            }
+        if "overdue" in lower or "urgent" in lower:
+            return {
+                "reasoning": "Urgent review needed to prevent knowledge decay.",
+                "recommendation": "review",
+            }
+        return {
+            "reasoning": "No strong conflicts. Following curriculum recommendation.",
+            "recommendation": "advance",
+        }
+
+    def _mock_teach_with_analogy(self, prompt: str) -> dict:
+        return {
+            "teaching_content": "Remember how variable scoping works? Closures are similar — "
+                                "they capture and retain the environment where they were created.",
+            "analogy_mapping": [
+                {"source": "variable scope boundaries", "target": "closure environment capture"},
+                {"source": "scope chain lookup", "target": "closure variable resolution"},
+            ],
+            "check_question": "How is a closure's environment like a scope?",
+            "expected_check_answer": "Both capture and retain variable bindings from enclosing contexts",
+            "strategy_used": "analogy",
+        }
+
+    def _mock_socratic_dialogue(self, prompt: str) -> dict:
+        return {
+            "opening_question": "What do you think happens to a variable after a function finishes executing?",
+            "follow_up_if_correct": "Great! Now what if another function still needs that variable?",
+            "follow_up_if_partial": "You're on the right track. What about variables in nested functions?",
+            "follow_up_if_wrong": "Interesting thought. Let's think about it from a different angle...",
+            "discovery_target": "Functions can capture variables from their enclosing scope",
+            "strategy_used": "socratic",
+        }
+
+    def _mock_composite_exercise(self, prompt: str) -> dict:
+        return {
+            "title": "Build a Configuration Manager",
+            "description": "Create a config manager that uses closures and decorators together.",
+            "requirements": ["Use closures to encapsulate config state", "Use decorators to validate access"],
+            "starter_code": "# Your code here",
+            "expected_approach": "Combine closure-based state with decorator validation",
+            "hints": ["Start with the closure for state", "Then wrap with a decorator"],
+            "concepts_tested": [],
+        }
+
+    def _mock_address_misconception(self, prompt: str) -> dict:
+        return {
+            "misconception_explanation": "A common mistake is thinking that closures capture the value "
+                                         "of a variable at the time the closure is created. In reality, "
+                                         "closures capture a reference to the variable.",
+            "wrong_example": "def make_funcs():\n    funcs = []\n    for i in range(3):\n        funcs.append(lambda: i)\n    return funcs\n# All return 2!",
+            "correct_explanation": "Closures capture variables by reference. To capture the current value, "
+                                   "use a default argument.",
+            "correct_example": "def make_funcs():\n    funcs = []\n    for i in range(3):\n        funcs.append(lambda i=i: i)\n    return funcs",
+            "check_question": "Can you explain why all lambdas return the same value without the default argument?",
+            "strategy_used": "misconception_remediation",
+        }
+
+    def _mock_real_world_scenario(self, prompt: str) -> dict:
+        return {
+            "scenario_title": "Building a Rate Limiter",
+            "context": "Your team needs a rate limiter for an API gateway. Each client gets a "
+                       "configurable request limit per time window.",
+            "task": "Implement a rate limiter factory that creates limiters with different configs.",
+            "requirements": ["Create a factory function", "Track request counts per client", "Reset counts after window expires"],
+            "why_this_concept": "The factory uses closures to encapsulate the limit configuration and counters.",
+            "starter_code": "def create_rate_limiter(max_requests, window_seconds):\n    # Your implementation here\n    pass",
+            "expected_solution_approach": "Use closures to capture max_requests and window_seconds, maintain a dict of client request counts.",
+            "strategy_used": "real_world_scenario",
+        }
+
+    def _mock_tool_composition(self, prompt: str) -> dict:
+        # Extract concept from prompt if possible
+        concept = "unknown"
+        for line in prompt.split("\n"):
+            if "current concept:" in line.lower():
+                val = line.split(":")[-1].strip()
+                if val and val != "None":
+                    concept = val
+                break
+        return {
+            "steps": [
+                {"tool": "teach", "args": {"concept_id": concept}},
+            ],
+            "reasoning": "Single teaching step for the target concept",
+        }
+
+    def _mock_session_summary(self, prompt: str) -> dict:
+        return {
+            "summary": "Learner worked on fundamental concepts. Showed strong engagement "
+                       "with worked examples but struggled with transfer tests.",
+            "tags": ["engaged", "transfer_difficulty"],
+            "entry_type": "session_summary",
+        }
+
+    def _mock_teaching_reflection(self, prompt: str) -> dict:
+        import re
+        score = 0.5
+        m = re.search(r"score: ([\d.]+)", prompt.lower())
+        if m:
+            score = float(m.group(1))
+
+        if score < 0.4:
+            return {
+                "reflection": "The strategy did not effectively convey the concept. "
+                              "The learner needs a different approach, possibly with more concrete examples.",
+                "tags": ["strategy_ineffective", "needs_examples"],
+                "next_suggestion": "Try worked_examples with step-by-step walkthrough",
+            }
+        return {
+            "reflection": "The teaching approach was moderately effective. "
+                          "The learner grasped the basics but needs more practice with edge cases.",
+            "tags": ["moderate_success"],
+            "next_suggestion": "Focus practice on edge cases and common pitfalls",
+        }
+
+    def _mock_session_opener(self, prompt: str) -> dict:
+        name = "learner"
+        for line in prompt.split("\n"):
+            if "learner:" in line.lower():
+                name = line.split(":")[-1].strip() or "learner"
+                break
+        return {
+            "greeting": f"Welcome back, {name}! Last time you made great progress. "
+                        f"Ready to build on that momentum today?",
+            "suggested_focus": "Continue with the next concept in your learning path.",
+        }
+
+    def _mock_career_suggestion(self, prompt: str) -> dict:
+        return {
+            "suggestion": "Based on your strong Python foundations, you'd excel in backend engineering or data engineering roles.",
+            "recommended_role": "Backend Engineer",
+            "reasoning": "Strong performance in core programming concepts with good problem-solving patterns.",
+            "strongest_domain": "python",
+            "growth_area": "data_structures",
         }
 
     def _mock_generic(self, prompt: str) -> dict:

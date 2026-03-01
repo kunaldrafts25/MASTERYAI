@@ -158,6 +158,70 @@ class AnalyticsAgent(BaseAgent):
 
         return patterns
 
+    def compute_domain_affinity(self, learner) -> dict:
+        domain_data: dict[str, dict] = {}
+        for cid, cs in learner.concept_states.items():
+            domain = cid.split(".")[0] if "." in cid else "general"
+            if domain not in domain_data:
+                domain_data[domain] = {"scores": [], "mastered": 0, "total": 0}
+            domain_data[domain]["total"] += 1
+            if cs.status == "mastered":
+                domain_data[domain]["mastered"] += 1
+            for test in cs.transfer_tests:
+                domain_data[domain]["scores"].append(test.score)
+
+        affinity = {}
+        for domain, data in domain_data.items():
+            avg_score = sum(data["scores"]) / len(data["scores"]) if data["scores"] else 0
+            mastery_rate = data["mastered"] / data["total"] if data["total"] > 0 else 0
+            affinity[domain] = {
+                "avg_score": round(avg_score, 2),
+                "mastery_rate": round(mastery_rate, 2),
+                "total_concepts": data["total"],
+                "affinity_score": round((avg_score * 0.6 + mastery_rate * 0.4), 2),
+            }
+        return affinity
+
+    def compute_session_fatigue_curve(self, learner) -> dict:
+        event_counts = []
+        for cid, cs in learner.concept_states.items():
+            test_count = len(cs.transfer_tests)
+            if test_count > 0:
+                event_counts.append(test_count)
+
+        avg_events = sum(event_counts) / len(event_counts) if event_counts else 0
+        return {
+            "avg_interactions_per_concept": round(avg_events, 1),
+            "suggestion": "Take breaks every 30-45 minutes for optimal retention."
+                if avg_events > 5 else "Session length looks good.",
+        }
+
+    def opine(self, session, learner):
+        from backend.agents.deliberation import AgentOpinion
+
+        patterns = self.identify_learning_patterns(learner)
+        if not patterns:
+            return None
+
+        for pattern in patterns:
+            if "struggling" in pattern.lower() or "weak" in pattern.lower() or "needs support" in pattern.lower():
+                return AgentOpinion(
+                    agent_name="analytics",
+                    recommendation="reduce_difficulty",
+                    reasoning=pattern,
+                    confidence=0.4,
+                    priority="advisory",
+                )
+            if "strong" in pattern.lower() or "excelling" in pattern.lower():
+                return AgentOpinion(
+                    agent_name="analytics",
+                    recommendation="increase_difficulty",
+                    reasoning=pattern,
+                    confidence=0.4,
+                    priority="advisory",
+                )
+        return None
+
     def post_analytics_observation(self, learner, session_id: str):
         patterns = self.identify_learning_patterns(learner)
         if not patterns:

@@ -4,6 +4,7 @@ import logging
 from datetime import datetime
 from backend.models.learner import LearnerState
 from backend.models.events import Session
+from backend.models.journal import JournalEntry, LearnerJournal
 from backend.config import settings
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,14 @@ class LearnerStore:
                 learner_id TEXT,
                 created_at TEXT NOT NULL,
                 is_active INTEGER DEFAULT 1
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS journal_entries (
+                entry_id TEXT PRIMARY KEY,
+                learner_id TEXT NOT NULL,
+                data TEXT NOT NULL,
+                created_at TEXT NOT NULL
             )
         """)
         conn.commit()
@@ -178,6 +187,45 @@ class LearnerStore:
             conn.close()
             return [Session.model_validate_json(r[0]) for r in rows]
 
+
+    async def save_journal_entry(self, learner_id: str, entry: JournalEntry):
+        data = entry.model_dump_json()
+        if _is_postgres():
+            from backend.db.database import db
+            async with db.pool.acquire() as conn:
+                await conn.execute(
+                    "INSERT INTO journal_entries (entry_id, learner_id, data, created_at) "
+                    "VALUES ($1, $2, $3, $4) "
+                    "ON CONFLICT (entry_id) DO UPDATE SET data = EXCLUDED.data",
+                    entry.entry_id, learner_id, data, entry.timestamp or datetime.utcnow().isoformat(),
+                )
+        else:
+            conn = self._get_conn()
+            conn.execute(
+                "INSERT OR REPLACE INTO journal_entries (entry_id, learner_id, data, created_at) VALUES (?, ?, ?, ?)",
+                (entry.entry_id, learner_id, data, entry.timestamp or datetime.utcnow().isoformat()),
+            )
+            conn.commit()
+            conn.close()
+
+    async def get_journal(self, learner_id: str) -> LearnerJournal:
+        if _is_postgres():
+            from backend.db.database import db
+            async with db.pool.acquire() as conn:
+                rows = await conn.fetch(
+                    "SELECT data FROM journal_entries WHERE learner_id = $1 ORDER BY created_at DESC",
+                    learner_id,
+                )
+            entries = [JournalEntry.model_validate_json(r["data"]) for r in rows]
+        else:
+            conn = self._get_conn()
+            rows = conn.execute(
+                "SELECT data FROM journal_entries WHERE learner_id = ? ORDER BY created_at DESC",
+                (learner_id,),
+            ).fetchall()
+            conn.close()
+            entries = [JournalEntry.model_validate_json(r[0]) for r in rows]
+        return LearnerJournal(learner_id=learner_id, entries=entries)
 
     async def create_user(self, user_id: str, email: str, password_hash: str, learner_id: str):
         now = datetime.utcnow()

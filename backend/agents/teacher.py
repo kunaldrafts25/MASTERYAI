@@ -110,6 +110,26 @@ Return JSON: {{"reflection": "your analysis of what happened", "recommended_stra
 
         return result
 
+    def opine(self, session, learner):
+        from backend.agents.deliberation import AgentOpinion
+
+        cid = session.current_concept
+        if not cid:
+            return None
+
+        cs = learner.concept_states.get(cid)
+        if cs and len(cs.teaching_strategies_tried) >= 2:
+            strategy = self.select_strategy(learner, cid)
+            worst = min(cs.teaching_strategies_tried.items(), key=lambda x: x[1])
+            return AgentOpinion(
+                agent_name="teacher",
+                recommendation="switch_strategy",
+                reasoning=f"Strategy '{worst[0]}' scored {worst[1]:.1f}. Recommending '{strategy}' instead.",
+                confidence=0.6,
+                priority="advisory",
+            )
+        return None
+
     async def teach(
         self, concept: Concept, learner: LearnerState, strategy: str | None = None, misconceptions: list[str] | None = None
     ) -> dict:

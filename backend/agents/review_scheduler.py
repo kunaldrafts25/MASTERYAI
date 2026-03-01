@@ -199,6 +199,55 @@ class ReviewSchedulerAgent(BaseAgent):
             "upcoming": upcoming[:10],
         }
 
+    def predict_at_risk(self, learner, days_ahead: int = 7) -> list[dict]:
+        now = datetime.utcnow()
+        cutoff = now + timedelta(days=days_ahead)
+        at_risk = []
+
+        for item in (learner.review_queue or []):
+            if not isinstance(item, dict):
+                continue
+            next_review_str = item.get("next_review", "")
+            if not next_review_str:
+                continue
+            try:
+                next_review = datetime.fromisoformat(next_review_str.replace("Z", ""))
+                if next_review <= cutoff:
+                    days_until = max(0, (next_review - now).days)
+                    at_risk.append({
+                        "concept_id": item.get("concept_id", "unknown"),
+                        "days_until_due": days_until,
+                        "overdue": next_review < now,
+                    })
+            except (ValueError, TypeError):
+                pass
+
+        return sorted(at_risk, key=lambda x: x["days_until_due"])
+
+    def opine(self, session, learner):
+        from backend.agents.deliberation import AgentOpinion
+
+        due = self.get_due_reviews(learner)
+        if not due:
+            return None
+
+        urgent = [r for r in due if r.get("urgency", 0) > 1.5]
+        if urgent:
+            return AgentOpinion(
+                agent_name="review_scheduler",
+                recommendation="review",
+                reasoning=f"{len(urgent)} concept(s) significantly overdue. Most urgent: '{urgent[0]['concept_id']}'.",
+                confidence=0.85,
+                priority="critical",
+            )
+        return AgentOpinion(
+            agent_name="review_scheduler",
+            recommendation="review",
+            reasoning=f"{len(due)} concept(s) due for review.",
+            confidence=0.5,
+            priority="advisory",
+        )
+
     def post_review_recommendations(self, learner, session_id: str):
         due = self.get_due_reviews(learner, limit=3)
         if not due:

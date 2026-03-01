@@ -12,12 +12,14 @@ from backend.agents.review_scheduler import review_scheduler
 from backend.agents.motivation import motivation_agent
 from backend.agents.analytics import analytics_agent
 from backend.agents.message_bus import message_bus, AgentMessage
-from backend.agents.tools import Tool, tool_registry
+from backend.agents.tools import Tool, ToolComposer, tool_registry
 from backend.models.learner import LearnerState, ConceptMastery, TestResult, RubricScore, UnderstandingSignal
 from backend.models.events import AgentEvent, Session
 from backend.services.knowledge_graph import knowledge_graph
 from backend.services.learner_store import learner_store
 from backend.agents.pedagogy import pedagogy_engine
+from backend.agents.memory import memory_agent
+from backend.agents.proactive import proactive_agent
 
 from backend.config import settings
 from backend.events.types import StreamEvent
@@ -87,6 +89,52 @@ class OrchestratorAgent(BaseAgent):
             description="Check how mastering a concept would affect career readiness scores. Informational — does not change state.",
             parameters={"concept_id": "str"},
             handler=self._tool_career_impact,
+        ))
+
+        # Extended tool library
+        from backend.agents.tool_library import (
+            tool_teach_with_analogy,
+            tool_composite_exercise,
+            tool_socratic_dialogue,
+            tool_address_misconception,
+            tool_real_world_scenario,
+        )
+
+        tool_registry.register(Tool(
+            name="teach_with_analogy",
+            description="Teach a concept by connecting it to something the learner already mastered. Use when a related concept is already known.",
+            parameters={"concept_id": "str", "analogy_source": "str - mastered concept ID to draw analogy from"},
+            handler=tool_teach_with_analogy,
+        ))
+        tool_registry.register(Tool(
+            name="composite_exercise",
+            description="Create an exercise combining multiple concepts into one cohesive challenge.",
+            parameters={"concepts": "list[str] - concept IDs to combine", "exercise_type": "str: mini_project|debugging|design_challenge"},
+            handler=tool_composite_exercise,
+        ))
+        tool_registry.register(Tool(
+            name="socratic_dialogue",
+            description="Start a Socratic dialogue — guide through questions instead of explaining directly.",
+            parameters={"concept_id": "str", "starting_question": "str (optional)"},
+            handler=tool_socratic_dialogue,
+        ))
+        tool_registry.register(Tool(
+            name="address_misconception",
+            description="Directly address a specific misconception with targeted remediation.",
+            parameters={"misconception_id": "str", "concept_id": "str"},
+            handler=tool_address_misconception,
+        ))
+        tool_registry.register(Tool(
+            name="real_world_scenario",
+            description="Create a realistic industry scenario requiring the concept.",
+            parameters={"concept_id": "str", "domain": "str (optional)"},
+            handler=tool_real_world_scenario,
+        ))
+        tool_registry.register(Tool(
+            name="compose",
+            description="Compose a multi-step action from a natural language description. Use when no single tool fits your pedagogical goal.",
+            parameters={"description": "str - what you want to do"},
+            handler=self._handle_compose,
         ))
 
     # ------------------------------------------------------------------
@@ -172,6 +220,24 @@ class OrchestratorAgent(BaseAgent):
                 session.current_concept = concept_id
                 logger.info(f"User requested topic '{topic}' resolved to concept '{concept_id}'")
 
+        # Load learner journal and recall relevant memory context
+        journal = await learner_store.get_journal(learner.learner_id)
+        session._memory_context = memory_agent.recall_relevant_context(
+            journal, concept_id=session.current_concept
+        )
+
+        # Proactive intelligence — gather insights for this session
+        opener = await proactive_agent.generate_session_opener(learner, journal)
+        decay_risks = proactive_agent.predict_decay_risk(learner)
+        opportunities = proactive_agent.identify_learning_opportunities(learner)
+        career_suggestion = await proactive_agent.suggest_career_direction(learner)
+        session._proactive = {
+            "opener": opener,
+            "decay_risks": decay_risks,
+            "opportunities": opportunities,
+            "career_suggestion": career_suggestion,
+        }
+
         # let agents post recommendations to the bus
         curriculum_agent.post_recommendations(learner, session.session_id)
         review_scheduler.post_review_recommendations(learner, session.session_id)
@@ -252,7 +318,11 @@ class OrchestratorAgent(BaseAgent):
 
     async def _react_loop(self, session: Session, learner: LearnerState,
                           trigger: str, user_content: str, event_bus=None) -> dict:
-        context = self._build_context(session, learner, trigger, user_content)
+        # Run agent deliberation before reasoning (0 LLM calls if no conflicts)
+        from backend.agents.deliberation import deliberation_protocol
+        deliberation = await deliberation_protocol.deliberate(session, learner, trigger)
+
+        context = self._build_context(session, learner, trigger, user_content, deliberation)
         final_result = None
         llm_calls = 0
 
@@ -260,6 +330,15 @@ class OrchestratorAgent(BaseAgent):
         session._event_bus = event_bus
 
         for step in range(MAX_REACT_STEPS):
+            # Proactive frustration check (zero LLM calls)
+            frustration = proactive_agent.predict_frustration_risk(session, learner)
+            if frustration:
+                session._frustration_warning = frustration
+                session.reasoning_history.append(
+                    f"[proactive] Frustration risk {frustration['risk']:.0%}: {frustration['suggestion']}"
+                )
+                context += f"\n\nPROACTIVE WARNING: Frustration risk {frustration['risk']:.0%}. {frustration['suggestion']}"
+
             await self._emit(event_bus, StreamEvent.agent_thinking("orchestrator", "Deciding next action..."))
             decision = await self._reason(context, step, session)
             llm_calls += 1
@@ -346,6 +425,12 @@ class OrchestratorAgent(BaseAgent):
             "select_next_concept": "curriculum",
             "mark_mastered": "orchestrator",
             "check_career_impact": "career_mapper",
+            "teach_with_analogy": "teacher",
+            "composite_exercise": "examiner",
+            "socratic_dialogue": "teacher",
+            "address_misconception": "teacher",
+            "real_world_scenario": "examiner",
+            "compose": "orchestrator",
         }.get(tool_name, "orchestrator")
 
     def _extract_text(self, response: dict) -> str:
@@ -418,6 +503,14 @@ You are deciding what this learner needs RIGHT NOW. Consider:
    - Would switching to a related/prerequisite concept be more productive?
    - Would dialogue (asking questions to probe understanding) be more effective than formal testing?
 
+ADVANCED ACTIONS (use when appropriate):
+- teach_with_analogy: When the learner has mastered a related concept, use it as a bridge
+- socratic_dialogue: When you want the learner to discover the concept through guided questions
+- composite_exercise: When multiple concepts should be practiced together
+- address_misconception: When a specific misconception needs targeted remediation
+- real_world_scenario: When the learner would benefit from seeing practical application
+- compose: When you need a custom multi-step action that no single tool provides
+
 GUIDELINES (not rigid rules):
 - Pick exactly ONE tool per step. Set respond_to_learner to true when you have content for the learner.
 - For session_start: if agent recommendations mention decayed concepts, use generate_test with that concept_id. Otherwise use teach with the recommended concept_id.
@@ -461,7 +554,7 @@ Return JSON only: {{"tool": "tool_name", "args": {{}}, "reasoning": "your step-b
     # ------------------------------------------------------------------
 
     def _build_context(self, session: Session, learner: LearnerState,
-                       trigger: str, user_content: str) -> str:
+                       trigger: str, user_content: str, deliberation=None) -> str:
         concept = knowledge_graph.get_concept(session.current_concept) if session.current_concept else None
 
         mastered = [cid for cid, cs in learner.concept_states.items() if cs.status == "mastered"]
@@ -518,8 +611,25 @@ LAST EVALUATION: {json.dumps(session.last_evaluation, default=str)[:200] if sess
 AGENT RECOMMENDATIONS:
 {agent_advice}
 
+{self._format_deliberation(deliberation)}{self._format_memory_context(session)}{self._format_proactive_context(session)}
 YOUR PAST REASONING:
 {past_reasoning}"""
+
+    def _format_deliberation(self, deliberation) -> str:
+        if not deliberation or not deliberation.opinions:
+            return ""
+        lines = ["AGENT DELIBERATION:"]
+        for o in deliberation.opinions:
+            lines.append(f"  [{o.agent_name}] ({o.priority}): {o.recommendation} — {o.reasoning}")
+        if deliberation.conflicts:
+            lines.append("\nCONFLICTS DETECTED:")
+            for c in deliberation.conflicts:
+                lines.append(f"  {c.nature}")
+            lines.append(f"\nRESOLUTION: {deliberation.resolution}")
+            lines.append(f"RESOLVED RECOMMENDATION: {deliberation.resolved_recommendation}")
+        else:
+            lines.append("All agents are in consensus.")
+        return "\n".join(lines)
 
     def _format_emotion_context(self, session: Session) -> str:
         analysis = session.engagement_analysis
@@ -531,6 +641,31 @@ YOUR PAST REASONING:
         if analysis.get("recommended_tone"):
             parts.append(f" (Recommended tone: {analysis['recommended_tone']})")
         return "".join(parts)
+
+    def _format_memory_context(self, session: Session) -> str:
+        memory = getattr(session, '_memory_context', '')
+        if not memory:
+            return ""
+        return f"\n{memory}\n"
+
+    def _format_proactive_context(self, session: Session) -> str:
+        proactive = getattr(session, '_proactive', None)
+        if not proactive:
+            return ""
+        lines = ["\nPROACTIVE INSIGHTS:"]
+        if proactive.get("decay_risks"):
+            risks = proactive["decay_risks"][:3]
+            lines.append(f"  Concepts at decay risk: {[r['concept_id'] for r in risks]}")
+        if proactive.get("opportunities"):
+            opps = proactive["opportunities"][:3]
+            lines.append(f"  Learning opportunities: {[o['concept_name'] + ' (' + o['type'] + ')' for o in opps]}")
+        if proactive.get("career_suggestion"):
+            cs = proactive["career_suggestion"]
+            lines.append(f"  Career suggestion: {cs.get('suggestion', 'N/A')}")
+        frustration = getattr(session, '_frustration_warning', None)
+        if frustration:
+            lines.append(f"  FRUSTRATION RISK: {frustration['risk']:.0%} — {frustration['suggestion']}")
+        return "\n".join(lines) + "\n"
 
     # ------------------------------------------------------------------
     # State inference for frontend
@@ -546,6 +681,12 @@ YOUR PAST REASONING:
             "select_next_concept": "idle",
             "mark_mastered": "idle",
             "check_career_impact": "idle",
+            "teach_with_analogy": "teaching",
+            "composite_exercise": "practicing",
+            "socratic_dialogue": "teaching",
+            "address_misconception": "teaching",
+            "real_world_scenario": "practicing",
+            "compose": "teaching",
         }.get(tool_name, "idle")
 
     # ------------------------------------------------------------------
@@ -565,6 +706,20 @@ YOUR PAST REASONING:
                      "next_content", "misconceptions_detected", "state_update"):
             if key in result:
                 response[key] = result[key]
+
+        # Attach proactive intelligence data
+        proactive = getattr(session, '_proactive', None)
+        if proactive:
+            response["proactive"] = {
+                "opener": proactive.get("opener"),
+                "decay_risks": proactive.get("decay_risks", []),
+                "opportunities": proactive.get("opportunities", []),
+                "career_suggestion": proactive.get("career_suggestion"),
+            }
+        frustration = getattr(session, '_frustration_warning', None)
+        if frustration:
+            response.setdefault("proactive", {})["frustration_warning"] = frustration
+
         return response
 
     # ------------------------------------------------------------------
@@ -802,6 +957,13 @@ YOUR PAST REASONING:
 
         learner.rl_policy = engine.to_dict()
         await learner_store.update_learner(learner)
+
+        # Generate teaching reflection in background (non-blocking)
+        import asyncio
+        strategy = session.current_strategy or "socratic"
+        asyncio.create_task(self._save_reflection(
+            session, learner, concept_id, strategy, score
+        ))
 
         # track engagement
         motivation_agent.record_interaction(
@@ -1046,6 +1208,27 @@ YOUR PAST REASONING:
             "_llm_calls": 0,
         }
 
+    async def _handle_compose(self, *, session: Session, learner: LearnerState,
+                              description: str = "", **_kw) -> dict:
+        composer = ToolComposer(tool_registry)
+        steps = await composer.compose(description, session, learner)
+
+        results = []
+        for step in steps:
+            tool_name = step["tool"]
+            tool_args = step.get("args", {})
+            tool = tool_registry.get(tool_name)
+            if tool and tool.handler:
+                result = await tool.handler(session=session, learner=learner, **tool_args)
+                results.append(result)
+
+        if results:
+            combined = results[-1]
+            combined["composed_steps"] = len(results)
+            return combined
+
+        return {"action": "error", "content": {"error": "Composition produced no results"}, "_llm_calls": 1}
+
     async def _tool_career_impact(self, *, session: Session, learner: LearnerState,
                                   concept_id: str = "", **_kw) -> dict:
         if not concept_id:
@@ -1066,6 +1249,33 @@ YOUR PAST REASONING:
             "content": impacts,
             "_llm_calls": 0,
         }
+
+    async def end_session(self, session_id: str, learner: LearnerState):
+        import asyncio
+        session = self.active_sessions.get(session_id)
+        if not session:
+            return
+        asyncio.create_task(self._save_session_summary(session, learner))
+        motivation_agent.cleanup_session(session_id)
+
+    async def _save_session_summary(self, session: Session, learner: LearnerState):
+        try:
+            entry = await memory_agent.generate_session_summary(session, learner)
+            await learner_store.save_journal_entry(learner.learner_id, entry)
+            logger.info(f"Saved session summary for {learner.learner_id}")
+        except Exception as e:
+            logger.warning("Session summary failed: %s", e)
+
+    async def _save_reflection(self, session: Session, learner: LearnerState,
+                               concept_id: str, strategy: str, score: float):
+        try:
+            entry = await memory_agent.generate_teaching_reflection(
+                concept_id, strategy, score, session, learner
+            )
+            await learner_store.save_journal_entry(learner.learner_id, entry)
+            logger.info(f"Saved teaching reflection for {concept_id}")
+        except Exception as e:
+            logger.warning("Teaching reflection failed: %s", e)
 
     # ------------------------------------------------------------------
     # Helpers

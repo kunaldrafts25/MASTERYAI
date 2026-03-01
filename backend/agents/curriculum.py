@@ -132,6 +132,30 @@ class CurriculumAgent(BaseAgent):
             logger.info(f"found {len(result)} decayed concepts: {result}")
         return result
 
+    def opine(self, session, learner):
+        from backend.agents.deliberation import AgentOpinion
+
+        decayed = self.get_decayed_concepts(learner)
+        if decayed:
+            return AgentOpinion(
+                agent_name="curriculum",
+                recommendation="review",
+                reasoning=f"Concept '{decayed[0]}' has decayed. Review before advancing.",
+                confidence=0.6,
+                priority="important",
+            )
+
+        next_concept = self.select_next_concept(learner)
+        if next_concept:
+            return AgentOpinion(
+                agent_name="curriculum",
+                recommendation="advance",
+                reasoning=f"Next concept on path: '{next_concept}'. Prerequisites satisfied.",
+                confidence=0.5,
+                priority="advisory",
+            )
+        return None
+
     def post_recommendations(self, learner: LearnerState, session_id: str):
         decayed = self.get_decayed_concepts(learner)
         if decayed:

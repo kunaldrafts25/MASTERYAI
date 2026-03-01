@@ -376,6 +376,38 @@ class MotivationAgent(BaseAgent):
             session_id=session_id,
         ))
 
+    def opine(self, session, learner):
+        from backend.agents.deliberation import AgentOpinion
+        signals = self._get_signals(session.session_id)
+
+        if signals.state == "frustrated":
+            return AgentOpinion(
+                agent_name="motivation",
+                recommendation="reduce_difficulty",
+                reasoning=f"Learner has {signals.consecutive_failures} consecutive failures and shows frustration signals.",
+                confidence=0.8,
+                priority="critical",
+                constraints=["Do not increase difficulty", "Do not give another test immediately"],
+            )
+        if signals.state == "bored":
+            return AgentOpinion(
+                agent_name="motivation",
+                recommendation="increase_difficulty",
+                reasoning=f"Learner has {signals.consecutive_successes} consecutive fast successes — material is too easy.",
+                confidence=0.7,
+                priority="important",
+            )
+        if signals.state == "disengaged":
+            return AgentOpinion(
+                agent_name="motivation",
+                recommendation="suggest_break",
+                reasoning="Session is long and performance is declining. A break would help.",
+                confidence=0.6,
+                priority="important",
+            )
+        # Neutral or flow — no strong opinion
+        return None
+
     def cleanup_session(self, session_id: str):
         self._sessions.pop(session_id, None)
         self._conversation_history.pop(session_id, None)
