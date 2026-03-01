@@ -22,19 +22,30 @@ class TestResult(BaseModel):
     confidence_at_time: float = 0.0
 
 
+class UnderstandingSignal(BaseModel):
+    timestamp: str = ""  # ISO format
+    signal_type: str  # "teaching_response", "test_score", "self_assessment",
+                       # "dialogue_quality", "practice_performance"
+    value: float  # 0.0-1.0 normalized understanding indicator
+    evidence: str  # brief description of what produced this signal
+
+
 class ConceptMastery(BaseModel):
     concept_id: str
     status: str = "unknown"  # unknown | introduced | practicing | testing | mastered | decayed
     mastery_score: float = Field(default=0.0, ge=0.0, le=1.0)
     self_reported_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     calibration_gap: float = 0.0
+    confidence: float = 0.0  # 0.0-1.0, computed from tests + learner input
     misconceptions_active: list[str] = []
     misconceptions_resolved: list[str] = []
     transfer_tests: list[TestResult] = []
+    understanding_signals: list[UnderstandingSignal] = []
     teaching_strategies_tried: dict[str, float] = {}
     best_strategy: str | None = None
     last_validated: datetime | None = None
     contexts_encountered: list[str] = []
+    prerequisites: list[str] = []  # for knowledge graph roadmap edges
     introduced_at: datetime | None = None
     mastered_at: datetime | None = None
 

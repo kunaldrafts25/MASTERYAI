@@ -22,9 +22,9 @@ class Settings(BaseSettings):
     jwt_expiry_hours: int = 24
 
     # Orchestrator
-    max_react_steps: int = 3
+    max_react_steps: int = 5
     max_reasoning_history: int = 10
-    max_llm_calls_per_loop: int = 4
+    max_llm_calls_per_loop: int = 8
 
     # LLM Client
     retry_delays: list[int] = [1, 2, 4]

@@ -18,10 +18,15 @@ async def get_graph(domain: list[str] = Query(default=[]), learner_id: str | Non
             learner = await learner_store.get_learner(learner_id)
             if learner:
                 learner_states = {
-                    cid: {"status": cs.status, "mastery_score": cs.mastery_score}
+                    cid: {
+                        "status": cs.status,
+                        "mastery_score": cs.mastery_score,
+                        "confidence": cs.confidence,
+                        "prerequisites": cs.prerequisites,
+                    }
                     for cid, cs in learner.concept_states.items()
                 }
-                # Only show concepts the learner has encountered
+                # Show ALL concepts in learner's roadmap (not just taught ones)
                 learner_concepts = set(learner.concept_states.keys())
 
         domains = domain if domain else None

@@ -13,10 +13,11 @@ from backend.agents.motivation import motivation_agent
 from backend.agents.analytics import analytics_agent
 from backend.agents.message_bus import message_bus, AgentMessage
 from backend.agents.tools import Tool, tool_registry
-from backend.models.learner import LearnerState, ConceptMastery, TestResult, RubricScore
+from backend.models.learner import LearnerState, ConceptMastery, TestResult, RubricScore, UnderstandingSignal
 from backend.models.events import AgentEvent, Session
 from backend.services.knowledge_graph import knowledge_graph
 from backend.services.learner_store import learner_store
+from backend.agents.pedagogy import pedagogy_engine
 
 from backend.config import settings
 from backend.events.types import StreamEvent
@@ -200,7 +201,28 @@ class OrchestratorAgent(BaseAgent):
                 if cid not in learner.concept_states:
                     learner.concept_states[cid] = ConceptMastery(concept_id=cid)
                 learner.concept_states[cid].self_reported_confidence = conf
+                # Record self-assessment as understanding signal
+                learner.concept_states[cid].understanding_signals.append(UnderstandingSignal(
+                    timestamp=datetime.utcnow().isoformat(),
+                    signal_type="self_assessment",
+                    value=conf,
+                    evidence=f"Self-reported confidence: {confidence or 5}/10",
+                ))
                 await learner_store.update_learner(learner)
+
+        # Record teaching response quality as understanding signal
+        if response_type == "answer" and session.current_state in ("teaching", "reteaching"):
+            cid = session.current_concept
+            if cid and content:
+                if cid not in learner.concept_states:
+                    learner.concept_states[cid] = ConceptMastery(concept_id=cid)
+                quality = pedagogy_engine.estimate_response_quality(content)
+                learner.concept_states[cid].understanding_signals.append(UnderstandingSignal(
+                    timestamp=datetime.utcnow().isoformat(),
+                    signal_type="teaching_response",
+                    value=quality,
+                    evidence=f"Response to teaching ({len(content)} chars, quality={quality:.2f})",
+                ))
 
         trigger_map = {
             "answer": f"learner_answer (current_state={session.current_state})",
@@ -349,8 +371,8 @@ class OrchestratorAgent(BaseAgent):
             except Exception:
                 pass
 
-        system = f"""You are the orchestrator of MasteryAI, an intelligent learning system with multiple specialist agents.
-Your job is to reason about what the learner needs and choose the right action.
+        system = f"""You are the orchestrator of MasteryAI, an expert educator deciding the optimal next action.
+Your job is to reason about what the learner needs RIGHT NOW and choose the best action.
 
 AVAILABLE TOOLS:
 {tool_descs}
@@ -359,17 +381,41 @@ VALID CONCEPT IDs (use these exact IDs):
 {available_concepts[:20]}
 {rl_hint}
 
-RULES:
-- Pick exactly ONE tool per step. Always set respond_to_learner to true.
+PEDAGOGICAL FRAMEWORK:
+You are deciding what this learner needs RIGHT NOW. Consider:
+
+1. EVIDENCE OF UNDERSTANDING:
+   - What has the learner demonstrated so far? (teaching responses, test scores, dialogue quality)
+   - Are there signs they already understand? (skip ahead) Or signs of confusion? (try different approach)
+
+2. LEARNER SIGNALS:
+   - Engagement: Are they interested, struggling, bored, in flow?
+   - Response quality: Detailed thoughtful answers vs short uncertain ones?
+   - Confidence: Do they think they understand? Does evidence match?
+
+3. PEDAGOGICAL JUDGMENT:
+   - Would testing now give useful signal, or is more scaffolding needed?
+   - Is the current teaching strategy working, or should you try a different one?
+   - Would switching to a related/prerequisite concept be more productive?
+   - Would dialogue (asking questions to probe understanding) be more effective than formal testing?
+
+GUIDELINES (not rigid rules):
+- Pick exactly ONE tool per step. Set respond_to_learner to true when you have content for the learner.
 - For session_start: if agent recommendations mention decayed concepts, use generate_test with that concept_id. Otherwise use teach with the recommended concept_id.
-- After teaching content is delivered and learner answers (state=teaching/reteaching), use generate_practice.
-- After practice (state=practicing), use ask_learner with question_type "self_assess".
-- After self-assessment, use generate_test.
-- After evaluate_response: the tool handles mastery/retest/reteach decisions automatically based on adaptive RL thresholds.
+- After teaching: If learner's response shows strong understanding, ASK THE LEARNER if they feel ready
+  for a test, or if they'd like to study the concept more deeply first. Use ask_learner with question_type
+  "readiness_check". NEVER auto-generate a test without the learner's consent.
+  If response shows confusion, consider reteaching with a different strategy or trying dialogue.
+- After practice: use ask_learner with question_type "self_assess".
+- After self-assessment: use generate_test.
+- After evaluate_response: the tool handles mastery/retest/reteach decisions automatically.
 - For chat messages, use ask_learner with question_type "chat".
+- LEARNER AGENCY: The learner decides when they're ready to be tested. Recommend but never force.
+- If stuck for 2+ attempts: Consider switching to a prerequisite concept.
+- Trust the RL hints for difficulty and strategy preferences, but use your judgment.
 - You have {remaining} step(s) remaining.
 
-Return JSON only: {{"tool": "tool_name", "args": {{}}, "reasoning": "your step-by-step thinking", "respond_to_learner": true}}"""
+Return JSON only: {{"tool": "tool_name", "args": {{}}, "reasoning": "your step-by-step pedagogical thinking", "respond_to_learner": true}}"""
 
         result = await self._llm_call(system, context)
         # validate
@@ -419,6 +465,10 @@ Return JSON only: {{"tool": "tool_name", "args": {{}}, "reasoning": "your step-b
             lt = session.last_test
             last_test_summary = f"context={lt.get('context_description', '?')}, concept={lt.get('concept_id', '?')}"
 
+        # Understanding evidence from pedagogy engine
+        evidence = pedagogy_engine.build_evidence_summary(learner, session.current_concept)
+        approach_hint = pedagogy_engine.suggest_approach(learner, session.current_concept)
+
         return f"""TRIGGER: {trigger}
 LEARNER INPUT: {user_content or '(none)'}
 
@@ -436,6 +486,10 @@ LEARNER PROFILE:
 - Calibration trend: {learner.learning_profile.calibration_trend}
 - Active misconceptions: {active_misconceptions}
 - Strategies tried for current concept: {strategies_tried}
+
+UNDERSTANDING EVIDENCE:
+{evidence}
+PEDAGOGICAL SUGGESTION: {approach_hint}
 
 LAST TEST: {last_test_summary}
 LAST EVALUATION: {json.dumps(session.last_evaluation, default=str)[:200] if session.last_evaluation else 'None'}
@@ -487,7 +541,7 @@ YOUR PAST REASONING:
 
     async def _fallback(self, session: Session, learner: LearnerState,
                         trigger: str, user_content: str) -> dict:
-        logger.warning("using deterministic fallback")
+        logger.warning("using evidence-based fallback")
         cid = session.current_concept
         concept = knowledge_graph.get_concept(cid) if cid else None
 
@@ -509,6 +563,18 @@ YOUR PAST REASONING:
             if state in ("testing", "retesting") and cid:
                 return await self._tool_evaluate(session=session, learner=learner, response=user_content)
             if state in ("teaching", "reteaching") and cid:
+                # Evidence-based: check readiness instead of always going to practice
+                readiness = pedagogy_engine.compute_readiness_estimate(learner, cid)
+                if readiness > 0.7:
+                    # Strong signals — ask learner if ready to test
+                    name = concept.name if concept else "this concept"
+                    return await self._tool_ask_learner(
+                        session=session, learner=learner,
+                        question=f"You seem to have a solid grasp of {name}. "
+                                 f"Would you like to take a test, or would you prefer "
+                                 f"to study it more deeply first?",
+                        question_type="readiness_check"
+                    )
                 return await self._tool_practice(session=session, learner=learner, concept_id=cid)
             if state == "practicing" and concept:
                 return await self._tool_ask_learner(
@@ -573,6 +639,12 @@ YOUR PAST REASONING:
         if not concept:
             return {"action": "error", "content": {"message": f"Concept {concept_id} not found"}}
 
+        # Adaptive difficulty: adjust based on learner's confidence
+        adaptive_difficulty = pedagogy_engine.select_test_difficulty(learner, concept_id)
+        # Use adaptive difficulty unless caller explicitly set one
+        if difficulty == 2:  # default value means no explicit override
+            difficulty = adaptive_difficulty
+
         test = await examiner_agent.generate_transfer_test(concept, learner, difficulty_tier=difficulty)
         session.current_concept = concept_id
         session.last_test = test
@@ -622,6 +694,16 @@ YOUR PAST REASONING:
         cs.mastery_score = score
         session.total_transfer_tests += 1
         session.last_evaluation = evaluation
+
+        # Record test score as understanding signal
+        cs.understanding_signals.append(UnderstandingSignal(
+            timestamp=datetime.utcnow().isoformat(),
+            signal_type="test_score",
+            value=score,
+            evidence=f"Transfer test score: {score:.2f} (threshold: ~0.7)",
+        ))
+        # Recompute confidence after new test score
+        pedagogy_engine.compute_confidence(learner, concept_id)
 
         conf_normalized = session.self_assessment or 0.0
         cs.calibration_gap = round(conf_normalized - score, 3)
@@ -913,9 +995,17 @@ YOUR PAST REASONING:
         )
         session.events.append(event)
 
+        # Map question types to actions
+        action_map = {
+            "self_assess": "self_assess",
+            "readiness_check": "readiness_check",
+            "clarify": "chat_response",
+            "chat": "chat_response",
+        }
+
         return {
-            "action": "self_assess" if question_type == "self_assess" else "chat_response",
-            "content": {"message": question},
+            "action": action_map.get(question_type, "chat_response"),
+            "content": {"message": question, "question_type": question_type},
             "_llm_calls": 0,
         }
 
@@ -959,6 +1049,26 @@ YOUR PAST REASONING:
             if raw_id.lower() in c.id.lower() or raw_id.lower() in c.name.lower():
                 return c.id
         return raw_id
+
+    # populate all plan concepts into learner state so the knowledge map shows the full roadmap
+    async def _populate_roadmap_graph(self, learner: LearnerState,
+                                      plan_concepts: list[dict]) -> None:
+        for concept in plan_concepts:
+            cid = concept.get("concept_id") or concept.get("id", "")
+            if not cid:
+                continue
+            if cid not in learner.concept_states:
+                learner.concept_states[cid] = ConceptMastery(
+                    concept_id=cid,
+                    status=concept.get("inferred_status", "unknown"),
+                    confidence=concept.get("inferred_confidence", 0.0),
+                )
+            # Store dependency edges for graph rendering
+            prereqs = concept.get("prerequisites", [])
+            if prereqs:
+                learner.concept_states[cid].prerequisites = prereqs
+        await learner_store.update_learner(learner)
+        logger.info(f"Populated roadmap graph with {len(plan_concepts)} concepts for learner {learner.learner_id}")
 
     def _concept_info(self, concept_id: str) -> dict:
         concept = knowledge_graph.get_concept(concept_id)

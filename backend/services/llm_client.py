@@ -295,8 +295,15 @@ class LLMClient:
     def _mock_react_decision(self, system: str, prompt: str) -> dict:
         lower = prompt.lower()
 
+        # Extract the TRIGGER line for precise matching
+        trigger_line = ""
+        for line in prompt.split("\n"):
+            if line.strip().startswith("TRIGGER:"):
+                trigger_line = line.lower()
+                break
+
         # session start
-        if "session_start" in lower:
+        if "session_start" in trigger_line:
             if "decayed" in lower and "decay" in lower:
                 concept = self._extract_react_field(prompt, "decayed_concepts")
                 return {
@@ -313,8 +320,8 @@ class LLMClient:
                 "respond_to_learner": True,
             }
 
-        # self assessment received
-        if "self_assessment" in lower:
+        # self assessment received — match trigger line specifically (not full context)
+        if "self_assessment" in trigger_line:
             concept = self._extract_react_field(prompt, "current concept")
             return {
                 "tool": "generate_test",
@@ -324,7 +331,7 @@ class LLMClient:
             }
 
         # learner answered — use UI state field for precise matching
-        if "learner_answer" in lower:
+        if "learner_answer" in trigger_line:
             # extract the actual UI state from context (format: "- UI state: <state>")
             ui_state = ""
             for line in prompt.split("\n"):
@@ -356,7 +363,7 @@ class LLMClient:
                 }
 
         # chat
-        if "chat" in lower:
+        if "chat" in trigger_line:
             return {
                 "tool": "ask_learner",
                 "args": {"question": "I hear you. Let's continue learning.", "question_type": "chat"},
