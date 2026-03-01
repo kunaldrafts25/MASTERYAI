@@ -73,7 +73,7 @@ Return JSON with: problem_statement, context_description, response_format, corre
             )
             result["concept_id"] = concept.id
             result["difficulty_tier"] = difficulty_tier
-                result["regenerated"] = True
+            result["regenerated"] = True
 
         return result
 
