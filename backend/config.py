@@ -3,9 +3,11 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # LLM
-    groq_api_key: str = ""
+    gemini_api_key: str = ""
+    groq_api_key: str = ""  # legacy, kept for backward compat
     use_mock_llm: bool = True
-    llm_model: str = "llama-3.3-70b-versatile"
+    llm_provider: str = "gemini"  # "gemini" or "groq"
+    llm_model: str = "gemini-2.0-flash"
 
     # Database
     database_url: str = "sqlite:///masteryai.db"

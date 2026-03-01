@@ -7,6 +7,7 @@ import { getLearnerSessions } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import ChatSidebar, { SessionSummary } from "@/components/ChatSidebar";
 import ChatMessage from "@/components/ChatMessage";
+import ChatInput from "@/components/ChatInput";
 import WelcomeScreen from "@/components/WelcomeScreen";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -81,7 +82,6 @@ function SessionContent() {
   const [streamingText, setStreamingText] = useState("");
 
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // ── Effects ──────────────────────────────────────────────────────────
 
@@ -209,8 +209,6 @@ function SessionContent() {
   }
 
   function handleSelectSession(sessionId: string) {
-    // For now, just highlight it in the sidebar
-    // Future: load session messages and allow continuation
     setActiveSessionId(sessionId);
   }
 
@@ -416,10 +414,11 @@ function SessionContent() {
   // ── Render ───────────────────────────────────────────────────────────
 
   const isProcessing = loading || !!thinkingAgent;
+  const isSelfAssess = currentAction === "self_assess";
 
   if (!learnerId) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#0a0a0a]">
+      <div className="h-screen flex items-center justify-center bg-[#212121]">
         <div className="text-center">
           <p className="text-zinc-400 mb-4">No learner found.</p>
           <a href="/login" className="text-white underline hover:text-zinc-300">
@@ -431,7 +430,7 @@ function SessionContent() {
   }
 
   return (
-    <div className="flex h-screen bg-[#0a0a0a]">
+    <div className="flex h-screen bg-[#212121]">
       {/* Sidebar */}
       <ChatSidebar
         sessions={sessions}
@@ -456,27 +455,9 @@ function SessionContent() {
         ) : (
           /* Active chat */
           <>
-            {/* Concept + Phase header */}
-            {(concept || activeTool) && (
-              <div className="px-5 py-2 border-b border-white/5 flex items-center justify-between bg-zinc-900/30">
-                <div className="flex items-center gap-2">
-                  {concept && (
-                    <span className="text-xs text-zinc-400">
-                      Learning: <span className="text-zinc-200 font-medium">{concept.name || concept.id}</span>
-                    </span>
-                  )}
-                </div>
-                {activeTool && (
-                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse">
-                    {TOOL_LABELS[activeTool] || activeTool}
-                  </span>
-                )}
-              </div>
-            )}
-
             {/* Messages */}
             <div className="flex-1 overflow-y-auto scrollbar-thin">
-              <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+              <div className="py-4">
                 {messages.map((msg) => (
                   <ChatMessage
                     key={msg.id}
@@ -493,23 +474,25 @@ function SessionContent() {
 
                 {/* Thinking indicator */}
                 {isProcessing && !streamingText && (
-                  <div className="flex gap-3 max-w-3xl">
-                    <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center flex-shrink-0">
-                      <span className="text-white text-xs font-bold">P</span>
-                    </div>
-                    <div className="flex items-center gap-3 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <span className="w-2 h-2 bg-zinc-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                  <div className="py-4">
+                    <div className="flex gap-4 max-w-chat mx-auto px-4">
+                      <div className="w-7 h-7 rounded-full bg-[#10a37f] flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-white text-xs font-bold">P</span>
                       </div>
-                      {activeTool ? (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                          {TOOL_LABELS[activeTool] || activeTool}
-                        </span>
-                      ) : thinkingAgent ? (
-                        <span className="text-xs text-zinc-500">Thinking...</span>
-                      ) : null}
+                      <div className="flex items-center gap-3 py-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
+                        {activeTool ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
+                            {TOOL_LABELS[activeTool] || activeTool}
+                          </span>
+                        ) : thinkingAgent ? (
+                          <span className="text-xs text-zinc-500">Thinking...</span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -520,7 +503,7 @@ function SessionContent() {
 
             {/* Calibration bar */}
             {calibration && (
-              <div className="max-w-3xl mx-auto w-full px-4 py-1.5 flex gap-6 text-xs">
+              <div className="max-w-chat mx-auto w-full px-4 py-1.5 flex gap-6 text-xs">
                 <span className="text-zinc-500">
                   Confidence: <span className="text-zinc-300">{(calibration.self_assessment * 100).toFixed(0)}%</span>
                 </span>
@@ -533,73 +516,28 @@ function SessionContent() {
               </div>
             )}
 
-            {/* Input area */}
-            <div className="border-t border-white/10">
-              <div className="max-w-3xl mx-auto px-4 py-4">
-                {currentAction === "self_assess" ? (
-                  <div className="bg-zinc-800/60 border border-zinc-700 rounded-xl p-4 space-y-3">
-                    <label className="text-xs text-zinc-400 uppercase tracking-wider">
-                      How confident do you feel? (1-10)
-                    </label>
-                    <div className="flex items-center gap-4">
-                      <span className="text-lg font-bold text-white w-8 text-center">{confidence}</span>
-                      <input
-                        type="range"
-                        min={1}
-                        max={10}
-                        value={confidence}
-                        onChange={(e) => setConfidence(Number(e.target.value))}
-                        className="flex-1 accent-emerald-500 h-2"
-                      />
-                    </div>
-                    <button
-                      onClick={handleSubmit}
-                      disabled={isProcessing}
-                      className="w-full bg-emerald-600 text-white text-sm font-medium py-2.5 rounded-lg
-                                 hover:bg-emerald-500 transition-colors disabled:opacity-50"
-                    >
-                      Submit Confidence
-                    </button>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <textarea
-                      ref={inputRef}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSubmit();
-                        }
-                      }}
-                      placeholder={
-                        currentAction === "practice" || currentAction === "transfer_test"
-                          ? "Type your answer..."
-                          : "Type your response..."
-                      }
-                      rows={1}
-                      disabled={isProcessing}
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 pr-12
-                                 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-500
-                                 resize-none disabled:opacity-50 max-h-32 overflow-y-auto transition-colors"
-                    />
-                    <button
-                      onClick={handleSubmit}
-                      disabled={isProcessing || !input.trim()}
-                      className="absolute right-2 bottom-2.5 p-1.5 rounded-lg
-                                 bg-white text-black hover:bg-zinc-200 transition-colors
-                                 disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 19V5M5 12l7-7 7 7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-                {error && <p className="text-red-400 text-xs mt-2">{error}</p>}
+            {/* Error display */}
+            {error && (
+              <div className="max-w-chat mx-auto w-full px-4">
+                <p className="text-red-400 text-xs py-1">{error}</p>
               </div>
-            </div>
+            )}
+
+            {/* Input area */}
+            <ChatInput
+              value={input}
+              onChange={setInput}
+              onSubmit={handleSubmit}
+              disabled={isProcessing}
+              placeholder={
+                currentAction === "practice" || currentAction === "transfer_test"
+                  ? "Type your answer..."
+                  : "Message MasteryAI..."
+              }
+              isSelfAssess={isSelfAssess}
+              confidence={confidence}
+              onConfidenceChange={setConfidence}
+            />
           </>
         )}
       </div>
@@ -611,7 +549,7 @@ export default function SessionPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-screen flex items-center justify-center bg-[#0a0a0a]">
+        <div className="h-screen flex items-center justify-center bg-[#212121]">
           <div className="text-zinc-500 animate-pulse">Loading...</div>
         </div>
       }

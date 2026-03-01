@@ -36,7 +36,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+    <div className="min-h-screen flex items-center justify-center bg-[#212121]">
       <div className="w-full max-w-md p-8">
         <h1 className="text-3xl font-bold text-white mb-2 text-center">Create Account</h1>
         <p className="text-zinc-400 text-center mb-8">Start your personalized learning journey</p>
@@ -55,7 +55,7 @@ export default function RegisterPage() {
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               required
-              className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:border-white focus:outline-none"
+              className="w-full px-4 py-3 bg-[#2f2f2f] border border-white/10 rounded-lg text-white focus:border-white/30 focus:outline-none transition-colors"
               placeholder="Your name"
             />
           </div>
@@ -66,7 +66,7 @@ export default function RegisterPage() {
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               required
-              className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:border-white focus:outline-none"
+              className="w-full px-4 py-3 bg-[#2f2f2f] border border-white/10 rounded-lg text-white focus:border-white/30 focus:outline-none transition-colors"
               placeholder="you@example.com"
             />
           </div>
@@ -78,7 +78,7 @@ export default function RegisterPage() {
               onChange={(e) => setForm({ ...form, password: e.target.value })}
               required
               minLength={6}
-              className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:border-white focus:outline-none"
+              className="w-full px-4 py-3 bg-[#2f2f2f] border border-white/10 rounded-lg text-white focus:border-white/30 focus:outline-none transition-colors"
               placeholder="Min 6 characters"
             />
           </div>
@@ -87,7 +87,7 @@ export default function RegisterPage() {
             <select
               value={form.experience_level}
               onChange={(e) => setForm({ ...form, experience_level: e.target.value })}
-              className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:border-white focus:outline-none"
+              className="w-full px-4 py-3 bg-[#2f2f2f] border border-white/10 rounded-lg text-white focus:border-white/30 focus:outline-none transition-colors"
             >
               <option value="beginner">Beginner</option>
               <option value="intermediate">Intermediate</option>

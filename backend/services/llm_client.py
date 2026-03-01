@@ -44,6 +44,7 @@ class LLMClient:
     def __init__(self):
         self.use_mock = settings.use_mock_llm
         self.model = settings.llm_model
+        self.provider = settings.llm_provider
         self.call_count = 0
         self.total_tokens = 0
         self._cache = LRUCache(CACHE_MAX)
@@ -51,8 +52,12 @@ class LLMClient:
 
     def _get_client(self):
         if self._client is None:
-            from groq import AsyncGroq
-            self._client = AsyncGroq(api_key=settings.groq_api_key)
+            if self.provider == "gemini":
+                from google import genai
+                self._client = genai.Client(api_key=settings.gemini_api_key)
+            else:
+                from groq import AsyncGroq
+                self._client = AsyncGroq(api_key=settings.groq_api_key)
         return self._client
 
     async def _redis_get(self, key: str) -> str | None:
@@ -102,6 +107,58 @@ class LLMClient:
         return result
 
     async def _real_generate(self, system: str, prompt: str) -> dict:
+        if self.provider == "gemini":
+            return await self._generate_gemini(system, prompt)
+        return await self._generate_groq(system, prompt)
+
+    async def _generate_gemini(self, system: str, prompt: str) -> dict:
+        client = self._get_client()
+        from google.genai import types
+
+        full_prompt = f"{system}\n\n{prompt}" if system else prompt
+
+        last_err = None
+        for attempt, delay in enumerate(RETRY_DELAYS):
+            try:
+                response = await asyncio.wait_for(
+                    asyncio.to_thread(
+                        client.models.generate_content,
+                        model=self.model,
+                        contents=full_prompt,
+                        config=types.GenerateContentConfig(
+                            temperature=settings.llm_temperature,
+                            max_output_tokens=settings.llm_max_tokens,
+                            response_mime_type="application/json",
+                        ),
+                    ),
+                    timeout=CALL_TIMEOUT,
+                )
+                break
+            except (asyncio.TimeoutError, Exception) as e:
+                last_err = e
+                logger.warning(
+                    "gemini attempt %d/%d failed: %s — retrying in %ds",
+                    attempt + 1, len(RETRY_DELAYS), str(e), delay,
+                )
+                if attempt < len(RETRY_DELAYS) - 1:
+                    await asyncio.sleep(delay)
+        else:
+            logger.error("all %d gemini attempts failed", len(RETRY_DELAYS))
+            raise last_err
+
+        usage = response.usage_metadata
+        prompt_tokens = usage.prompt_token_count if usage else 0
+        completion_tokens = usage.candidates_token_count if usage else 0
+        self.total_tokens += prompt_tokens + completion_tokens
+        logger.info(
+            "gemini tokens: prompt=%d completion=%d total=%d",
+            prompt_tokens, completion_tokens, prompt_tokens + completion_tokens,
+        )
+
+        text = response.text
+        return self._parse_json(text)
+
+    async def _generate_groq(self, system: str, prompt: str) -> dict:
         client = self._get_client()
         messages = []
         if system:
@@ -125,13 +182,13 @@ class LLMClient:
             except (asyncio.TimeoutError, Exception) as e:
                 last_err = e
                 logger.warning(
-                    "attempt %d/%d failed: %s — retrying in %ds",
+                    "groq attempt %d/%d failed: %s — retrying in %ds",
                     attempt + 1, len(RETRY_DELAYS), str(e), delay,
                 )
                 if attempt < len(RETRY_DELAYS) - 1:
                     await asyncio.sleep(delay)
         else:
-            logger.error("all %d attempts failed", len(RETRY_DELAYS))
+            logger.error("all %d groq attempts failed", len(RETRY_DELAYS))
             raise last_err
 
         usage = completion.usage
@@ -139,11 +196,15 @@ class LLMClient:
         completion_tokens = usage.completion_tokens if usage else 0
         self.total_tokens += prompt_tokens + completion_tokens
         logger.info(
-            "tokens used: prompt=%d completion=%d total=%d",
+            "groq tokens: prompt=%d completion=%d total=%d",
             prompt_tokens, completion_tokens, prompt_tokens + completion_tokens,
         )
 
         text = completion.choices[0].message.content
+        return self._parse_json(text)
+
+    @staticmethod
+    def _parse_json(text: str) -> dict:
         try:
             return json.loads(text)
         except json.JSONDecodeError:

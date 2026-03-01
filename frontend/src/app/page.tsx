@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <>
     <nav className="border-b border-white/10 px-6 py-3 flex items-center justify-between">
-      <Link href="/" className="text-lg font-semibold tracking-tight">MasteryAI</Link>
+      <Link href="/" className="text-lg font-semibold tracking-tight text-[#ececec]">MasteryAI</Link>
       <div className="flex gap-4 text-sm">
         <Link href="/login" className="text-zinc-400 hover:text-white transition-colors">Sign In</Link>
         <Link href="/register" className="text-white bg-zinc-800 px-3 py-1 rounded hover:bg-zinc-700 transition-colors">Sign Up</Link>
@@ -48,19 +48,19 @@ export default function Home() {
       </div>
 
       <div className="grid grid-cols-3 gap-6 mt-20 text-left">
-        <div className="p-5 bg-zinc-900/60 rounded-lg border border-zinc-800">
+        <div className="p-5 bg-[#2f2f2f]/60 rounded-lg border border-white/10">
           <h3 className="font-semibold mb-2">Transfer Testing</h3>
           <p className="text-sm text-zinc-400">
             Prove understanding by applying concepts in novel contexts, not just repeating examples.
           </p>
         </div>
-        <div className="p-5 bg-zinc-900/60 rounded-lg border border-zinc-800">
+        <div className="p-5 bg-[#2f2f2f]/60 rounded-lg border border-white/10">
           <h3 className="font-semibold mb-2">Multi-Agent AI</h3>
           <p className="text-sm text-zinc-400">
             5 specialized agents collaborate to teach, assess, and adapt your learning path.
           </p>
         </div>
-        <div className="p-5 bg-zinc-900/60 rounded-lg border border-zinc-800">
+        <div className="p-5 bg-[#2f2f2f]/60 rounded-lg border border-white/10">
           <h3 className="font-semibold mb-2">Career Intelligence</h3>
           <p className="text-sm text-zinc-400">
             Real-time career readiness scores tied to your actual mastery, not certificates.

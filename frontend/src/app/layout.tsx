@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "./providers";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "MasteryAI",
@@ -14,7 +17,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-[#0a0a0a] text-white min-h-screen antialiased">
+      <body className={`${inter.className} bg-[#212121] text-[#ececec] min-h-screen antialiased`}>
         <AuthProvider>
           {children}
         </AuthProvider>

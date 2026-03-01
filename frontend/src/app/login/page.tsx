@@ -30,7 +30,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a]">
+    <div className="min-h-screen flex items-center justify-center bg-[#212121]">
       <div className="w-full max-w-md p-8">
         <h1 className="text-3xl font-bold text-white mb-2 text-center">Welcome Back</h1>
         <p className="text-zinc-400 text-center mb-8">Sign in to continue learning</p>
@@ -49,7 +49,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:border-white focus:outline-none"
+              className="w-full px-4 py-3 bg-[#2f2f2f] border border-white/10 rounded-lg text-white focus:border-white/30 focus:outline-none transition-colors"
               placeholder="you@example.com"
             />
           </div>
@@ -60,7 +60,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:border-white focus:outline-none"
+              className="w-full px-4 py-3 bg-[#2f2f2f] border border-white/10 rounded-lg text-white focus:border-white/30 focus:outline-none transition-colors"
               placeholder="••••••••"
             />
           </div>

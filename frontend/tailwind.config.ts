@@ -11,6 +11,14 @@ const config: Config = {
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",
+        "sidebar-bg": "var(--sidebar-bg)",
+        "input-bg": "var(--input-bg)",
+        "border-subtle": "var(--border-subtle)",
+        accent: "var(--accent)",
+        "accent-hover": "var(--accent-hover)",
+      },
+      maxWidth: {
+        chat: "768px",
       },
     },
   },

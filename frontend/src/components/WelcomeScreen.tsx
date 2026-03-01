@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 interface WelcomeScreenProps {
   onStartSession: (topic: string) => void;
@@ -8,71 +8,106 @@ interface WelcomeScreenProps {
   userName?: string;
 }
 
+const SUGGESTIONS = [
+  { label: "Learn Python", desc: "Start from the basics" },
+  { label: "Understand recursion", desc: "With visual examples" },
+  { label: "Data structures 101", desc: "Arrays, stacks, trees" },
+  { label: "Learn JavaScript", desc: "Modern ES6+ syntax" },
+];
+
 export default function WelcomeScreen({ onStartSession, loading, userName }: WelcomeScreenProps) {
   const [input, setInput] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 200) + "px";
+  }, [input]);
 
   function handleSubmit() {
     const text = input.trim();
-    if (text) {
+    if (text && !loading) {
       onStartSession(text);
       setInput("");
     }
   }
 
-  const greeting = userName
-    ? `Hello ${userName}! I'm your personal professor.`
-    : "Hello! I'm your personal professor.";
-
   return (
-    <div className="flex flex-col items-center justify-center h-full max-w-2xl mx-auto px-4">
-      {/* Professor avatar */}
-      <div className="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center mb-6">
-        <span className="text-white text-2xl font-bold">P</span>
-      </div>
-
-      {/* Greeting */}
-      <h1 className="text-2xl font-semibold text-white mb-2 text-center">
-        {greeting}
+    <div className="flex flex-col items-center justify-center h-full px-4">
+      {/* Title */}
+      <h1 className="text-3xl md:text-4xl font-semibold text-[#ececec] mb-2">
+        MasteryAI
       </h1>
-      <p className="text-zinc-400 text-center mb-10 max-w-md">
-        Tell me what you&apos;d like to learn and I&apos;ll build a personalized lesson just for you.
-        Any topic, any level.
+      <p className="text-zinc-500 mb-10">
+        {userName ? `Hi ${userName}! ` : ""}What do you want to learn today?
       </p>
 
       {/* Input */}
-      <div className="w-full max-w-lg">
-        <div className="relative">
-          <input
-            type="text"
+      <div className="w-full max-w-[768px]">
+        <div className="relative bg-[#2f2f2f] rounded-2xl border border-white/10
+                        focus-within:border-white/20 transition-colors">
+          <textarea
+            ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") handleSubmit();
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
             }}
-            placeholder="What do you want to learn?"
+            placeholder="Message MasteryAI..."
+            rows={1}
             disabled={loading}
             autoFocus
-            className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3.5 pr-12
-                       text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500
-                       disabled:opacity-50 transition-colors"
+            className="w-full bg-transparent px-4 py-3.5 pr-12
+                       text-[15px] text-[#ececec] placeholder-zinc-500
+                       focus:outline-none resize-none
+                       disabled:opacity-50 overflow-y-auto"
+            style={{ maxHeight: 200 }}
           />
           <button
             onClick={handleSubmit}
             disabled={loading || !input.trim()}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg
-                       bg-emerald-600 hover:bg-emerald-500 text-white transition-colors
+            className="absolute right-2 bottom-2.5 p-2 rounded-lg
+                       bg-[#ececec] text-[#212121]
+                       hover:bg-white transition-colors
                        disabled:opacity-30 disabled:cursor-not-allowed"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M12 19V5M5 12l7-7 7 7" />
             </svg>
           </button>
         </div>
+
         {loading && (
-          <p className="text-xs text-zinc-500 text-center mt-3 animate-pulse">
+          <p className="text-sm text-zinc-500 text-center mt-3 animate-pulse">
             Preparing your lesson...
           </p>
         )}
+
+        {/* Suggestion chips */}
+        {!loading && (
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            {SUGGESTIONS.map((s) => (
+              <button
+                key={s.label}
+                onClick={() => onStartSession(s.label)}
+                className="text-left px-4 py-3 rounded-xl border border-white/10 bg-transparent
+                           hover:bg-white/5 transition-colors group"
+              >
+                <span className="text-sm text-[#ececec] group-hover:text-white">{s.label}</span>
+                <span className="block text-xs text-zinc-500 mt-0.5">{s.desc}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <p className="text-xs text-zinc-500 text-center mt-4">
+          MasteryAI can make mistakes. Verify important information.
+        </p>
       </div>
     </div>
   );
