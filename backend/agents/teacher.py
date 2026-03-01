@@ -12,12 +12,7 @@ logger = logging.getLogger(__name__)
 class TeacherAgent(BaseAgent):
     name = "teacher"
 
-    # RL bandit picks strategy, falls back to deterministic in mock mode
     def select_strategy(self, learner: LearnerState, concept_id: str, misconceptions: list[str] | None = None) -> str:
-        from backend.services.llm_client import llm_client
-        if llm_client.use_mock:
-            return self._deterministic_strategy(learner, concept_id, misconceptions)
-
         engine = get_rl_engine(learner)
         # adaptive exclusion: exclude strategies statistically underperforming
         exclude = engine.strategy_bandit.get_exclusion_set()
@@ -31,32 +26,9 @@ class TeacherAgent(BaseAgent):
         logger.info(f"RL bandit selected strategy: {selected} (excluded: {exclude})")
         return selected
 
-    # fallback for mock/test mode
-    def _deterministic_strategy(self, learner: LearnerState, concept_id: str, misconceptions: list[str] | None = None) -> str:
-        if misconceptions:
-            return "debugging_exercise"
-
-        state = learner.concept_states.get(concept_id)
-        if state and state.teaching_strategies_tried:
-            tried = list(state.teaching_strategies_tried.keys())
-            untried = [s for s in ALL_STRATEGIES if s not in tried]
-            if untried:
-                return untried[0]
-            return max(state.teaching_strategies_tried.items(), key=lambda x: x[1])[0]
-
-        if learner.learning_profile.preferred_strategy:
-            return learner.learning_profile.preferred_strategy
-
-        return "socratic"
-
-    # LLM-driven strategy selection with reflection
     async def select_strategy_smart(self, learner: LearnerState, concept_id: str,
                                     misconceptions: list[str] | None = None,
                                     session_id: str = "") -> str:
-        from backend.services.llm_client import llm_client
-        if llm_client.use_mock:
-            return self._deterministic_strategy(learner, concept_id, misconceptions)
-
         cs = learner.concept_states.get(concept_id)
         if not cs or not cs.teaching_strategies_tried:
             return self.select_strategy(learner, concept_id, misconceptions)

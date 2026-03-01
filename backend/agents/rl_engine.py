@@ -6,8 +6,7 @@ from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
-# Dedicated RNG for RL decisions — avoids perturbing the global random state
-# that mock LLM depends on for deterministic test behavior.
+# dedicated RNG for RL decisions — keeps exploration reproducible
 _rl_rng = random.Random(42)
 
 ALL_STRATEGIES = ["socratic", "worked_examples", "analogy", "debugging_exercise", "explain_back"]

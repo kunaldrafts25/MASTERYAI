@@ -61,20 +61,18 @@ Return JSON with: problem_statement, context_description, response_format, corre
         result["concept_id"] = concept.id
         result["difficulty_tier"] = difficulty_tier
 
-        # self-validation — only in non-mock mode
-        from backend.services.llm_client import llm_client
-        if not llm_client.use_mock:
-            validation = await self.validate_test(result, concept)
-            result["validation"] = validation
+        # self-validation — regenerate if test quality is poor
+        validation = await self.validate_test(result, concept)
+        result["validation"] = validation
 
-            if not validation.get("is_valid", True):
-                logger.info(f"test validation failed: {validation.get('issues')}. regenerating.")
-                result = await self._llm_call(
-                    system,
-                    prompt + f"\n\nPREVIOUS ATTEMPT HAD ISSUES: {validation.get('issues')}\nFix these issues in the new version."
-                )
-                result["concept_id"] = concept.id
-                result["difficulty_tier"] = difficulty_tier
+        if not validation.get("is_valid", True):
+            logger.info(f"test validation failed: {validation.get('issues')}. regenerating.")
+            result = await self._llm_call(
+                system,
+                prompt + f"\n\nPREVIOUS ATTEMPT HAD ISSUES: {validation.get('issues')}\nFix these issues in the new version."
+            )
+            result["concept_id"] = concept.id
+            result["difficulty_tier"] = difficulty_tier
                 result["regenerated"] = True
 
         return result
