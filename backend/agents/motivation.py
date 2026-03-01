@@ -1,4 +1,4 @@
-# motivation agent - detects engagement states and suggests interventions
+# motivation agent - two-tier emotional intelligence + engagement detection
 
 import time
 import logging
@@ -22,12 +22,126 @@ class EngagementSignals:
         self.encouragement_given: bool = False  # max 1 LLM call per session
 
 
+# tier 2: LLM-powered emotional analysis (only when tier 1 signals something or message has markers)
+class EmotionalIntelligence:
+
+    FRUSTRATION_MARKERS = [
+        "don't get", "don't understand", "makes no sense", "stupid",
+        "give up", "confused", "lost", "hate", "impossible", "stuck",
+        "what??", "!!!",
+    ]
+    EXCITEMENT_MARKERS = [
+        "oh!", "i see", "that makes sense", "aha", "got it", "cool",
+        "awesome", "finally", "clicked", "love",
+    ]
+    BOREDOM_MARKERS = [
+        "boring", "already know", "too easy", "next", "skip",
+        "whatever",
+    ]
+
+    def has_emotional_content(self, text: str) -> bool:
+        if not text:
+            return False
+        lower = text.lower()
+        all_markers = (
+            self.FRUSTRATION_MARKERS +
+            self.EXCITEMENT_MARKERS +
+            self.BOREDOM_MARKERS
+        )
+        return any(marker in lower for marker in all_markers)
+
+    # 1 LLM call — returns state, confidence, reasoning, nuances, recommended_tone
+    async def analyze_emotion(self, conversation_history: list[dict],
+                               signals: EngagementSignals,
+                               learner_name: str) -> dict:
+        from backend.services.llm_client import llm_client
+
+        convo = "\n".join(
+            f"[{m['role']}]: {m['content'][:200]}"
+            for m in conversation_history[-8:]
+        )
+
+        system = """You are an expert at reading emotional states in educational conversations.
+Analyze the learner's emotional state from their messages, response patterns, and performance signals.
+
+Return JSON:
+{
+    "state": "frustrated|confused|bored|excited|flow|disengaged|neutral",
+    "confidence": 0.0-1.0,
+    "reasoning": "1-2 sentence explanation",
+    "nuances": ["specific observation 1", "specific observation 2"],
+    "recommended_tone": "encouraging|challenging|patient|celebratory"
+}
+
+Consider:
+- Message tone and word choice matter more than test scores
+- Short, terse answers may indicate frustration or disengagement
+- Long, exploratory answers often indicate flow or excitement
+- Repeated "I don't understand" is different from "Let me try again"
+- Cultural context: some learners express frustration indirectly"""
+
+        prompt = f"""Learner: {learner_name}
+Recent conversation:
+{convo}
+
+Performance signals:
+- Consecutive failures: {signals.consecutive_failures}
+- Consecutive successes: {signals.consecutive_successes}
+- Total interactions this session: {signals.total_interactions}
+- Recent answer lengths: {signals.answer_lengths[-5:]}
+- Current quantitative state: {signals.state}
+
+What is this learner's emotional state?"""
+
+        return await llm_client.generate(prompt, system=system)
+
+    # 1 LLM call — generates a personalized intervention referencing specific context
+    async def generate_intervention(self, emotional_state: dict,
+                                      learner_name: str,
+                                      concept_name: str,
+                                      conversation_history: list[dict]) -> dict:
+        from backend.services.llm_client import llm_client
+
+        recent_learner_msg = ""
+        for m in reversed(conversation_history):
+            if m.get("role") == "learner":
+                recent_learner_msg = m["content"][:200]
+                break
+
+        system = f"""Generate a brief, personalized intervention for a learner who is {emotional_state['state']}.
+
+Rules:
+- Reference something specific from their recent interaction
+- Keep it to 1-2 sentences
+- Be genuine, not patronizing
+- Match the recommended tone: {emotional_state.get('recommended_tone', 'encouraging')}
+
+Return JSON:
+{{
+    "type": "encouragement|challenge|break_suggestion|celebration",
+    "message": "Your personalized message",
+    "action": "reduce_difficulty|increase_difficulty|suggest_break|null"
+}}"""
+
+        prompt = f"""Learner: {learner_name}
+Current topic: {concept_name}
+Emotional state: {emotional_state['state']} (confidence: {emotional_state.get('confidence', 0)})
+Nuances: {emotional_state.get('nuances', [])}
+Last learner message: "{recent_learner_msg}" """
+
+        result = await llm_client.generate(prompt, system=system)
+        result["engagement_state"] = emotional_state["state"]
+        result["personalized"] = True
+        return result
+
 
 class MotivationAgent(BaseAgent):
     name = "motivation"
 
     def __init__(self):
         self._sessions: dict[str, EngagementSignals] = {}
+        self._emotional_intelligence = EmotionalIntelligence()
+        self._conversation_history: dict[str, list[dict]] = {}  # session_id -> messages
 
     def _get_signals(self, session_id: str) -> EngagementSignals:
         if session_id not in self._sessions:
@@ -44,6 +158,20 @@ class MotivationAgent(BaseAgent):
         return engine.select_engagement_profile(
             session_minutes, signals.scores, signals.response_times
         )
+
+    def record_message(self, session_id: str, role: str, content: str):
+        if session_id not in self._conversation_history:
+            self._conversation_history[session_id] = []
+        self._conversation_history[session_id].append({
+            "role": role,
+            "content": content,
+            "timestamp": time.monotonic(),
+        })
+        # Keep last 20 messages per session
+        self._conversation_history[session_id] = self._conversation_history[session_id][-20:]
+
+    def get_conversation_history(self, session_id: str) -> list[dict]:
+        return self._conversation_history.get(session_id, [])
 
     def record_interaction(self, session_id: str, answer_text: str,
                            score: float | None = None, is_test_result: bool = False,
@@ -73,10 +201,10 @@ class MotivationAgent(BaseAgent):
                 # partial: don't reset streaks aggressively
                 signals.consecutive_failures = max(0, signals.consecutive_failures - 1)
 
-        # update state
+        # update state (Tier 1)
         signals.state = self.detect_state(session_id, learner=learner)
 
-    # rule-based engagement detection
+    # tier 1: rule-based engagement detection (zero LLM calls)
     def detect_state(self, session_id: str, learner=None) -> str:
         signals = self._get_signals(session_id)
         profile = self._get_engagement_profile(session_id, learner)
@@ -112,6 +240,41 @@ class MotivationAgent(BaseAgent):
 
         return "neutral"
 
+    # tier 1 (numeric) then tier 2 (LLM) if warranted
+    async def detect_state_with_context(self, session_id: str,
+                                         learner=None,
+                                         learner_name: str = "") -> dict:
+        signals = self._get_signals(session_id)
+
+        # Tier 1: Fast numeric detection
+        numeric_state = self.detect_state(session_id, learner=learner)
+
+        # Check if Tier 2 is warranted
+        conversation = self._conversation_history.get(session_id, [])
+        last_message = conversation[-1]["content"] if conversation else ""
+
+        needs_llm = (
+            numeric_state != "neutral"  # Numeric signals say something is off
+            or self._emotional_intelligence.has_emotional_content(last_message)  # Content has markers
+        )
+
+        if not needs_llm:
+            return {"state": "neutral", "source": "numeric", "analysis": None}
+
+        # Tier 2: LLM emotional analysis
+        try:
+            analysis = await self._emotional_intelligence.analyze_emotion(
+                conversation, signals, learner_name
+            )
+            return {
+                "state": analysis.get("state", numeric_state),
+                "source": "llm",
+                "analysis": analysis,
+            }
+        except Exception as e:
+            logger.warning("LLM emotional analysis failed: %s — using numeric state", e)
+            return {"state": numeric_state, "source": "numeric", "analysis": None}
+
     def get_intervention(self, session_id: str, learner) -> dict | None:
         state = self.detect_state(session_id)
 
@@ -141,6 +304,29 @@ class MotivationAgent(BaseAgent):
 
         # flow — don't interrupt!
         return None
+
+    async def get_intervention_personalized(self, session_id: str,
+                                             learner, concept_name: str = "") -> dict | None:
+        emotion = await self.detect_state_with_context(
+            session_id, learner=learner,
+            learner_name=getattr(learner, "name", "")
+        )
+
+        if emotion["state"] in ("neutral", "flow"):
+            return None  # Don't interrupt flow, don't intervene on neutral
+
+        # If LLM analysis available, generate personalized intervention
+        if emotion["analysis"]:
+            conversation = self._conversation_history.get(session_id, [])
+            return await self._emotional_intelligence.generate_intervention(
+                emotion["analysis"],
+                getattr(learner, "name", ""),
+                concept_name,
+                conversation,
+            )
+
+        # Fall back to canned interventions for numeric-only detection
+        return self.get_intervention(session_id, learner)
 
     def celebrate_milestone(self, learner, milestone_type: str, session_id: str):
         celebrations = {
@@ -192,6 +378,7 @@ class MotivationAgent(BaseAgent):
 
     def cleanup_session(self, session_id: str):
         self._sessions.pop(session_id, None)
+        self._conversation_history.pop(session_id, None)
 
 
 motivation_agent = MotivationAgent()

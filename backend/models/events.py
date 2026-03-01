@@ -40,8 +40,10 @@ class Session(BaseModel):
     self_assessment: float | None = None
     reasoning_history: list[str] = []
     agent_messages: list[dict] = []
-    engagement_state: str = "neutral"  # neutral | frustrated | bored | flow | disengaged
+    engagement_state: str = "neutral"  # neutral | frustrated | bored | flow | disengaged | confused | excited
     engagement_signals: dict = {}
+    conversation_history: list[dict] = []  # [{role, content, timestamp}] for emotional analysis
+    engagement_analysis: dict | None = None  # Latest emotional analysis result from Tier 2
     diagnostic_data: dict | None = None
     diagnostic_index: int = 0
     diagnostic_results: list[dict] = []

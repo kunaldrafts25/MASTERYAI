@@ -192,6 +192,10 @@ class OrchestratorAgent(BaseAgent):
 
         logger.info(f"handling {response_type} in state={session.current_state} concept={session.current_concept}")
 
+        # Record learner message for emotional analysis (Tier 2)
+        if content:
+            motivation_agent.record_message(session_id, "learner", content)
+
         # store self-assessment before entering the loop
         if response_type == "self_assessment":
             conf = (confidence or 5) / 10.0
@@ -223,6 +227,15 @@ class OrchestratorAgent(BaseAgent):
                     value=quality,
                     evidence=f"Response to teaching ({len(content)} chars, quality={quality:.2f})",
                 ))
+
+        # Tier 2 emotional detection — updates session before ReAct loop sees it
+        if content:
+            emotion = await motivation_agent.detect_state_with_context(
+                session_id, learner=learner, learner_name=learner.name
+            )
+            session.engagement_state = emotion["state"]
+            if emotion["analysis"]:
+                session.engagement_analysis = emotion["analysis"]
 
         trigger_map = {
             "answer": f"learner_answer (current_state={session.current_state})",
@@ -388,10 +401,16 @@ You are deciding what this learner needs RIGHT NOW. Consider:
    - What has the learner demonstrated so far? (teaching responses, test scores, dialogue quality)
    - Are there signs they already understand? (skip ahead) Or signs of confusion? (try different approach)
 
-2. LEARNER SIGNALS:
+2. LEARNER SIGNALS & EMOTIONAL STATE:
    - Engagement: Are they interested, struggling, bored, in flow?
    - Response quality: Detailed thoughtful answers vs short uncertain ones?
    - Confidence: Do they think they understand? Does evidence match?
+   - Emotional state: Check the EMOTIONAL STATE field in context. Adapt your tone accordingly.
+     * frustrated/confused → be patient, simplify, offer encouragement, consider switching approach
+     * bored → increase challenge, skip ahead, or switch to harder concept
+     * excited → maintain momentum, build on their enthusiasm
+     * disengaged → suggest a break or try a completely different angle
+     * flow → DON'T INTERRUPT — keep the current pace going
 
 3. PEDAGOGICAL JUDGMENT:
    - Would testing now give useful signal, or is more scaffolding needed?
@@ -487,6 +506,8 @@ LEARNER PROFILE:
 - Active misconceptions: {active_misconceptions}
 - Strategies tried for current concept: {strategies_tried}
 
+EMOTIONAL STATE: {session.engagement_state}{self._format_emotion_context(session)}
+
 UNDERSTANDING EVIDENCE:
 {evidence}
 PEDAGOGICAL SUGGESTION: {approach_hint}
@@ -499,6 +520,17 @@ AGENT RECOMMENDATIONS:
 
 YOUR PAST REASONING:
 {past_reasoning}"""
+
+    def _format_emotion_context(self, session: Session) -> str:
+        analysis = session.engagement_analysis
+        if not analysis:
+            return ""
+        parts = []
+        if analysis.get("nuances"):
+            parts.append(f" (Nuances: {analysis['nuances']})")
+        if analysis.get("recommended_tone"):
+            parts.append(f" (Recommended tone: {analysis['recommended_tone']})")
+        return "".join(parts)
 
     # ------------------------------------------------------------------
     # State inference for frontend
@@ -622,6 +654,11 @@ YOUR PAST REASONING:
         session.events.append(event)
 
         career_readiness = career_mapper_agent.calculate_all_readiness(learner)
+
+        # Record professor message for emotional analysis
+        teaching_text = teaching.get("teaching_content", "")[:200]
+        if teaching_text:
+            motivation_agent.record_message(session.session_id, "professor", teaching_text)
 
         return {
             "action": "teach",

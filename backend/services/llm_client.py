@@ -178,6 +178,12 @@ class LLMClient:
         # career role generation
         if "workforce analyst" in lower:
             return self._mock_career_role(prompt)
+        # emotional analysis (Tier 2)
+        if "reading emotional states" in lower or "emotional state" in lower:
+            return self._mock_emotional_analysis(prompt)
+        # personalized intervention
+        if "personalized intervention" in lower:
+            return self._mock_personalized_intervention(prompt)
         # encouragement
         if "encouraging learning coach" in lower:
             return self._mock_encouragement(prompt)
@@ -615,6 +621,62 @@ class LLMClient:
     def _mock_encouragement(self, prompt: str) -> dict:
         return {
             "message": "You're building real understanding here. Each challenge you work through makes the next one easier. Keep pushing!",
+        }
+
+    def _mock_emotional_analysis(self, prompt: str) -> dict:
+        lower = prompt.lower()
+        if any(w in lower for w in ["stupid", "give up", "hate", "don't get"]):
+            return {
+                "state": "frustrated", "confidence": 0.9,
+                "reasoning": "Learner expressed frustration with explicit language",
+                "nuances": ["Used strong negative language"],
+                "recommended_tone": "patient",
+            }
+        if any(w in lower for w in ["boring", "too easy", "already know"]):
+            return {
+                "state": "bored", "confidence": 0.8,
+                "reasoning": "Learner indicates material is not challenging",
+                "nuances": ["Requesting more challenge"],
+                "recommended_tone": "challenging",
+            }
+        if any(w in lower for w in ["aha", "oh!", "clicked", "i see", "finally"]):
+            return {
+                "state": "excited", "confidence": 0.85,
+                "reasoning": "Learner shows excitement and breakthrough moment",
+                "nuances": ["Expressing discovery"],
+                "recommended_tone": "celebratory",
+            }
+        return {
+            "state": "neutral", "confidence": 0.7,
+            "reasoning": "No strong emotional signals detected",
+            "nuances": [],
+            "recommended_tone": "encouraging",
+        }
+
+    def _mock_personalized_intervention(self, prompt: str) -> dict:
+        lower = prompt.lower()
+        if "frustrated" in lower:
+            return {
+                "type": "encouragement",
+                "message": "I can see this concept is challenging. Let me explain it differently.",
+                "action": "reduce_difficulty",
+            }
+        if "bored" in lower:
+            return {
+                "type": "challenge",
+                "message": "You're ready for something harder. Let's push your limits.",
+                "action": "increase_difficulty",
+            }
+        if "excited" in lower:
+            return {
+                "type": "celebration",
+                "message": "That's a real breakthrough! Let's build on this momentum.",
+                "action": None,
+            }
+        return {
+            "type": "encouragement",
+            "message": "You're making progress. Keep going!",
+            "action": None,
         }
 
     def _mock_generic(self, prompt: str) -> dict:
