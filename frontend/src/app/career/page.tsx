@@ -5,6 +5,7 @@ import { useState, useEffect, Suspense } from "react";
 import { getLearnerState, getReadiness } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { NavBar } from "../providers";
+import { scoreBarColor, ROUTES } from "@/lib/constants";
 
 interface SkillBreakdown {
   skill_name: string;
@@ -33,14 +34,8 @@ interface RoleReadiness {
 
 interface RoleData {
   readiness: RoleReadiness;
-  learning_path: any[];
+  learning_path: unknown[];
   total_hours: number;
-}
-
-function barColor(score: number) {
-  if (score > 0.7) return "bg-green-500";
-  if (score > 0.3) return "bg-yellow-500";
-  return "bg-red-500";
 }
 
 function CareerContent() {
@@ -61,7 +56,7 @@ function CareerContent() {
   async function doFetch() {
     setLoading(true);
     try {
-      const state: any = await getLearnerState(learnerId);
+      const state = await getLearnerState(learnerId);
       const careerTargets = state.career_targets || [];
 
       if (careerTargets.length === 0) {
@@ -73,15 +68,15 @@ function CareerContent() {
       const results: Record<string, RoleData> = {};
       for (const roleId of careerTargets) {
         try {
-          const data: any = await getReadiness(learnerId, roleId);
+          const data = await getReadiness(learnerId, roleId);
           results[roleId] = data;
         } catch {
           // skip
         }
       }
       setRoleData(results);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load career data");
     }
     setLoading(false);
   }
@@ -89,7 +84,7 @@ function CareerContent() {
   if (!learnerId) {
     return (
       <div className="p-10 text-center text-zinc-500">
-        <a href="/login" className="text-white underline">Sign in</a> to view career data.
+        <a href={ROUTES.LOGIN} className="text-white underline">Sign in</a> to view career data.
       </div>
     );
   }
@@ -116,7 +111,7 @@ function CareerContent() {
             and your readiness dashboard will appear here.
           </p>
           <a
-            href="/session"
+            href={ROUTES.SESSION}
             className="inline-block px-5 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-colors text-sm font-medium"
           >
             Start a session
@@ -138,7 +133,7 @@ function CareerContent() {
 
               <div className="w-full h-2 bg-zinc-800 rounded-full mb-5">
                 <div
-                  className={`h-full rounded-full transition-all ${barColor(r.overall_score)}`}
+                  className={`h-full rounded-full transition-all ${scoreBarColor(r.overall_score)}`}
                   style={{ width: `${overallPct}%` }}
                 />
               </div>
@@ -156,7 +151,7 @@ function CareerContent() {
                       </div>
                       <div className="w-full h-1.5 bg-zinc-800 rounded-full">
                         <div
-                          className={`h-full rounded-full ${barColor(skill.score)}`}
+                          className={`h-full rounded-full ${scoreBarColor(skill.score)}`}
                           style={{ width: `${Math.round(skill.score * 100)}%` }}
                         />
                       </div>

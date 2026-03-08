@@ -9,7 +9,7 @@ Teaches in one context. Tests in another. If you can transfer the idea, you've m
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=fff)](#)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=fff)](#)
 [![Next.js](https://img.shields.io/badge/Next.js-14-000?logo=next.js&logoColor=fff)](#)
-[![Gemini](https://img.shields.io/badge/Gemini_2.0-Flash-4285F4?logo=google&logoColor=fff)](#)
+[![AWS Bedrock](https://img.shields.io/badge/AWS_Bedrock-Claude-FF9900?logo=amazonaws&logoColor=fff)](#)
 [![License](https://img.shields.io/badge/License-MIT-31C754)](#)
 
 </div>
@@ -67,8 +67,8 @@ MasteryAI is a full-stack adaptive learning platform powered by 12 coordinated A
 │     Memory  Proactive  Deliberation  Pedagogy                │
 │                                                              │
 │   ┌──────────────┐  ┌──────────────┐  ┌────────────────┐    │
-│   │ Gemini 2.0   │  │  Knowledge   │  │ Learner Store  │    │
-│   │ Flash (LLM)  │  │  Graph       │  │ (SQLite / PG)  │    │
+│   │ AWS Bedrock  │  │  Knowledge   │  │ Learner Store  │    │
+│   │ Claude (LLM) │  │  Graph       │  │ (SQLite / PG)  │    │
 │   └──────────────┘  └──────────────┘  └────────────────┘    │
 │                                                              │
 │   ┌──────────────┐  ┌──────────────┐  ┌────────────────┐    │
@@ -124,7 +124,7 @@ Hyperparameters auto-scale by experience: beginners use high exploration (α=0.2
 
 | Layer | Technologies |
 |:------|:-------------|
-| **Backend** | Python 3.11, FastAPI, Pydantic v2, Gemini 2.0 Flash (primary), Groq/Llama 3.3 (fallback), JWT + bcrypt |
+| **Backend** | Python 3.11, FastAPI, Pydantic v2, AWS Bedrock (Claude), JWT + bcrypt |
 | **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS, D3.js, Recharts, react-markdown |
 | **Data** | PostgreSQL 16, SQLite (dev), Redis 7 |
 | **Infra** | Docker Compose, Nginx |
@@ -156,6 +156,8 @@ masteryai/
 │       │   ├── career/         career roles + readiness dashboard
 │       │   ├── calibration/    confidence vs mastery analysis
 │       │   ├── agent-log/      real-time agent reasoning viewer
+│       │   ├── settings/       user profile & preferences
+│       │   ├── history/        session history browser
 │       │   ├── login/          auth pages
 │       │   └── register/
 │       ├── components/   ChatInput, ChatMessage, ChatSidebar, KnowledgeGraph,
@@ -176,7 +178,7 @@ masteryai/
 ```bash
 git clone https://github.com/kunaldrafts25/MASTERYAI.git
 cd masteryai
-echo "GEMINI_API_KEY=your_key_here" > .env
+cp .env.example .env   # configure AWS credentials
 docker compose up --build
 ```
 
@@ -189,7 +191,7 @@ Open **http://localhost** — done.
 ```bash
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
-export GEMINI_API_KEY=your_key_here
+aws configure   # set up AWS credentials for Bedrock
 uvicorn backend.main:app --reload --port 8000
 ```
 
@@ -250,6 +252,7 @@ GET   /api/v1/learner/{id}/calibration                 Confidence calibration da
 GET   /api/v1/learner/{id}/rl-policy                   RL policy parameters
 GET   /api/v1/learner/{id}/reviews                     Scheduled reviews
 GET   /api/v1/learner/{id}/retention/{concept_id}      Retention estimate
+PUT   /api/v1/learner/{id}/profile                     Update name/experience level
 PUT   /api/v1/learner/{id}/career-target               Set career target
 GET   /api/v1/learner/{id}/sessions                    Session history
 ```
@@ -271,10 +274,10 @@ GET   /api/v1/health                                   Status + concept/role cou
 
 | Variable | Default | Description |
 |:---------|:--------|:------------|
-| `GEMINI_API_KEY` | — | Google Gemini API key (primary LLM) |
-| `GROQ_API_KEY` | — | Groq API key (fallback LLM) |
-| `LLM_PROVIDER` | `gemini` | LLM provider (`gemini` or `groq`) |
-| `LLM_MODEL` | `gemini-2.0-flash` | Model to use |
+| `AWS_REGION` | `us-east-1` | AWS region for Bedrock |
+| `AWS_BEDROCK_MODEL_ID` | `us.anthropic.claude-3-5-haiku-20241022-v1:0` | Bedrock model ID |
+| `AWS_ACCESS_KEY_ID` | — | AWS credentials (or use `aws configure`) |
+| `AWS_SECRET_ACCESS_KEY` | — | AWS credentials (or use `aws configure`) |
 | `DATABASE_URL` | `sqlite:///masteryai.db` | Database connection string |
 | `REDIS_URL` | `redis://localhost:6379/0` | Redis for caching |
 | `JWT_SECRET` | `change-me-in-production` | JWT signing secret |
@@ -298,7 +301,7 @@ python -m pytest tests/test_learning_loop.py -q     # learning loop (10 tests)
 python -m pytest tests/test_auth.py -q              # authentication (7 tests)
 python -m pytest tests/test_career.py -q            # career system (5 tests)
 
-GEMINI_API_KEY=key python -m pytest tests/test_live.py -q   # live LLM (7 tests)
+python -m pytest tests/test_live.py -q   # live LLM via Bedrock (7 tests)
 ```
 
 <br>

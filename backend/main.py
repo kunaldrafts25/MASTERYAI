@@ -58,8 +58,10 @@ app.add_middleware(
 )
 
 try:
-    from backend.middleware import RateLimitMiddleware
+    from backend.middleware import RateLimitMiddleware, RequestIDMiddleware, SecurityHeadersMiddleware
     app.add_middleware(RateLimitMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(RequestIDMiddleware)
 except Exception:
     pass
 

@@ -16,14 +16,27 @@ class KnowledgeGraphService:
         self._prerequisite_cache: dict[str, set[str]] = {}
 
     def load(self, path: str | None = None):
-        p = Path(path or settings.knowledge_graph_path)
-        with open(p) as f:
-            data = json.load(f)
+        data = self._load_data(path)
         self.domains = data.get("domains", [])
         for raw in data["concepts"]:
             c = Concept(**raw)
             self.concepts[c.id] = c
         self._prerequisite_cache.clear()
+
+    def _load_data(self, path: str | None = None) -> dict:
+        if settings.aws_s3_data_bucket:
+            try:
+                import boto3
+                s3 = boto3.client("s3", region_name=settings.aws_region)
+                key = Path(settings.knowledge_graph_path).name
+                resp = s3.get_object(Bucket=settings.aws_s3_data_bucket, Key=key)
+                logger.info("loaded knowledge graph from S3: %s/%s", settings.aws_s3_data_bucket, key)
+                return json.loads(resp["Body"].read())
+            except Exception as e:
+                logger.warning("S3 load failed, falling back to local: %s", e)
+        p = Path(path or settings.knowledge_graph_path)
+        with open(p) as f:
+            return json.load(f)
 
     def add_concepts(self, concepts: list[Concept]) -> int:
         added = 0

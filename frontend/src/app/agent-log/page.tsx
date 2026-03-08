@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useState, useEffect, useRef, Suspense } from "react";
 import { getEvents } from "@/lib/api";
 import { NavBar } from "../providers";
+import { AGENT_STYLES, DEFAULT_AGENT_STYLE, TIMING, ROUTES } from "@/lib/constants";
 
 interface AgentEvent {
   event_id: string;
@@ -12,20 +13,12 @@ interface AgentEvent {
   timestamp: string;
   learner_id: string;
   session_id: string;
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
   reasoning: string;
 }
 
-const AGENT_COLORS: Record<string, string> = {
-  orchestrator: "text-blue-400 bg-blue-500/10 border-blue-500/20",
-  examiner: "text-red-400 bg-red-500/10 border-red-500/20",
-  teacher: "text-green-400 bg-green-500/10 border-green-500/20",
-  curriculum: "text-purple-400 bg-purple-500/10 border-purple-500/20",
-  career_mapper: "text-orange-400 bg-orange-500/10 border-orange-500/20",
-};
-
 function agentStyle(agent: string) {
-  return AGENT_COLORS[agent] || "text-zinc-400 bg-zinc-500/10 border-zinc-500/20";
+  return AGENT_STYLES[agent] || DEFAULT_AGENT_STYLE;
 }
 
 function formatTime(ts: string) {
@@ -40,7 +33,6 @@ function formatTime(ts: string) {
 function AgentLogContent() {
   const params = useSearchParams();
   const sessionId = params.get("session_id") || "";
-  const learnerId = params.get("learner_id") || "";
 
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -54,7 +46,7 @@ function AgentLogContent() {
       return;
     }
     doFetch();
-    const interval = setInterval(doFetch, 3000);
+    const interval = setInterval(doFetch, TIMING.AGENT_LOG_POLL_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);
@@ -65,11 +57,11 @@ function AgentLogContent() {
 
   async function doFetch() {
     try {
-      const data: any = await getEvents(sessionId);
-      setEvents(Array.isArray(data) ? data : []);
+      const data = await getEvents(sessionId);
+      setEvents(Array.isArray(data) ? (data as AgentEvent[]) : []);
       setError("");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load events");
     }
     setLoading(false);
   }
@@ -85,14 +77,27 @@ function AgentLogContent() {
 
   if (!sessionId) {
     return (
-      <div className="p-10 text-center text-zinc-500">
-        No session ID provided. Start a learning session first.
-        {learnerId && (
-          <p className="mt-2 text-xs">
-            Learner ID: {learnerId}
+      <>
+        <NavBar />
+        <div className="text-center py-16">
+          <div className="w-16 h-16 rounded-full bg-blue-600/20 flex items-center justify-center mx-auto mb-4">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" strokeWidth="1.5">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+            </svg>
+          </div>
+          <h2 className="text-lg font-medium text-zinc-300 mb-2">No session selected</h2>
+          <p className="text-zinc-500 max-w-md mx-auto mb-6">
+            Start a learning session first, then navigate here to see real-time agent decisions and reasoning.
           </p>
-        )}
-      </div>
+          <a
+            href={ROUTES.SESSION}
+            className="inline-block px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-500 transition-colors text-sm font-medium"
+          >
+            Start a session
+          </a>
+        </div>
+      </>
     );
   }
 

@@ -1,18 +1,8 @@
 "use client";
 
+import { memo } from "react";
 import MarkdownContent from "./MarkdownContent";
-
-const PHASE_LABELS: Record<string, { label: string; color: string }> = {
-  teach: { label: "Learning", color: "text-emerald-400" },
-  practice: { label: "Practice", color: "text-yellow-400" },
-  self_assess: { label: "Self-Assessment", color: "text-blue-400" },
-  transfer_test: { label: "Testing", color: "text-red-400" },
-  mastered_and_advance: { label: "Mastered!", color: "text-emerald-400" },
-  mastered_all_done: { label: "Complete!", color: "text-emerald-400" },
-  reteach: { label: "Review", color: "text-orange-400" },
-  retest: { label: "Retesting", color: "text-orange-400" },
-  decay_check: { label: "Retention Check", color: "text-purple-400" },
-};
+import { PHASE_LABELS } from "@/lib/constants";
 
 interface ChatMessageProps {
   role: "professor" | "learner" | "system";
@@ -31,17 +21,16 @@ function PhaseBadge({ action }: { action: string }) {
   );
 }
 
-export default function ChatMessage({ role, content, action, streaming }: ChatMessageProps) {
-  // User (learner) message
+function ChatMessage({ role, content, action, streaming }: ChatMessageProps) {
   if (role === "learner") {
     return (
-      <div className="group py-4">
-        <div className="flex gap-4 max-w-chat mx-auto px-4">
-          <div className="w-7 h-7 rounded-full bg-[#2f2f2f] flex items-center justify-center flex-shrink-0 mt-0.5 border border-white/10">
-            <span className="text-xs font-medium text-[#ececec]">U</span>
+      <div className="group py-3 md:py-4">
+        <div className="flex gap-3 md:gap-4 max-w-chat mx-auto px-3 md:px-4">
+          <div className="w-7 h-7 rounded-full bg-input-bg flex items-center justify-center flex-shrink-0 mt-0.5 border border-white/10">
+            <span className="text-xs font-medium text-foreground">U</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[15px] text-[#ececec] whitespace-pre-wrap leading-relaxed">
+            <p className="text-sm md:text-[15px] text-foreground whitespace-pre-wrap leading-relaxed">
               {content}
             </p>
           </div>
@@ -50,11 +39,10 @@ export default function ChatMessage({ role, content, action, streaming }: ChatMe
     );
   }
 
-  // System message (phase changes, mastery notifications)
   if (role === "system") {
     return (
       <div className="py-2">
-        <div className="max-w-chat mx-auto flex gap-4 px-4">
+        <div className="max-w-chat mx-auto flex gap-3 md:gap-4 px-3 md:px-4">
           <div className="w-7 flex-shrink-0" />
           <div className="flex-1">
             {action && <PhaseBadge action={action} />}
@@ -67,16 +55,15 @@ export default function ChatMessage({ role, content, action, streaming }: ChatMe
     );
   }
 
-  // Professor (assistant) message
   return (
-    <div className="group py-4">
-      <div className="flex gap-4 max-w-chat mx-auto px-4">
-        <div className="w-7 h-7 rounded-full bg-[#10a37f] flex items-center justify-center flex-shrink-0 mt-0.5">
+    <div className="group py-3 md:py-4">
+      <div className="flex gap-3 md:gap-4 max-w-chat mx-auto px-3 md:px-4">
+        <div className="w-7 h-7 rounded-full bg-accent flex items-center justify-center flex-shrink-0 mt-0.5">
           <span className="text-white text-xs font-bold">P</span>
         </div>
         <div className="flex-1 min-w-0">
           {action && <PhaseBadge action={action} />}
-          <div className="text-[15px] text-[#ececec] leading-relaxed">
+          <div className="text-sm md:text-[15px] text-foreground leading-relaxed">
             <MarkdownContent content={content} />
             {streaming && <span className="streaming-cursor" />}
           </div>
@@ -85,3 +72,5 @@ export default function ChatMessage({ role, content, action, streaming }: ChatMe
     </div>
   );
 }
+
+export default memo(ChatMessage);

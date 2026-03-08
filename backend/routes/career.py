@@ -4,7 +4,6 @@ from pydantic import BaseModel, Field
 from backend.services.career_service import career_service
 from backend.services.career_role_generator import career_role_generator
 from backend.services.learner_store import learner_store
-from backend.agents.career_mapper import career_mapper_agent
 from backend.agents.curriculum import curriculum_agent
 from backend.auth.dependencies import get_current_user, verify_ownership
 
@@ -82,7 +81,7 @@ async def get_readiness(learner_id: str, role_id: str, user: dict = Depends(get_
         raise HTTPException(404, "Learner not found")
 
     try:
-        readiness = career_mapper_agent.calculate_readiness(learner, role_id)
+        readiness = curriculum_agent.calculate_readiness(learner, role_id)
         if not readiness:
             raise HTTPException(404, "Role not found")
 

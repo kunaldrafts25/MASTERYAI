@@ -1,11 +1,6 @@
 // SSE streaming client - uses fetch+ReadableStream for POST-based SSE
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
-
-function getToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("token");
-}
+import { API_BASE, authHeaders } from "./config";
 
 export interface StreamHandlers {
   onAcknowledged?: () => void;
@@ -15,9 +10,40 @@ export interface StreamHandlers {
   onToolStart?: (toolName: string, agent: string) => void;
   onToolComplete?: (toolName: string, agent: string) => void;
   onPhaseChange?: (phase: string, concept: string) => void;
-  onResult?: (data: any) => void;
+  onResult?: (data: ActionResult) => void;
   onError?: (message: string) => void;
   onComplete?: () => void;
+}
+
+/** Discriminated union for SSE events from the backend */
+export type StreamEvent =
+  | { type: "acknowledged" }
+  | { type: "agent_thinking"; agent: string; message: string }
+  | { type: "thinking_complete" }
+  | { type: "text_chunk"; chunk: string; final: boolean }
+  | { type: "tool_start"; tool_name: string; agent: string }
+  | { type: "tool_complete"; tool_name: string; agent: string }
+  | { type: "phase_change"; phase: string; concept: string }
+  | { type: "result"; result: ActionResult }
+  | { type: "stream_complete" }
+  | { type: "error"; message: string };
+
+/** Shape of the result payload from the orchestrator */
+export interface ActionResult {
+  action: string;
+  session_id?: string;
+  concept?: { id: string; name: string; domain?: string };
+  next_concept?: { id: string; name: string; domain?: string };
+  content?: Record<string, unknown>;
+  next_content?: Record<string, unknown>;
+  evaluation?: { total_score: number; [key: string]: unknown };
+  calibration?: {
+    self_assessment: number;
+    actual_score: number;
+    gap: number;
+  };
+  misconceptions_detected?: string[];
+  [key: string]: unknown;
 }
 
 async function streamRequest(
@@ -25,13 +51,9 @@ async function streamRequest(
   body: object,
   handlers: StreamHandlers
 ): Promise<void> {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const token = getToken();
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const response = await fetch(`${API}${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
-    headers,
+    headers: authHeaders(),
     body: JSON.stringify(body),
   });
 
@@ -83,7 +105,7 @@ async function streamRequest(
   handlers.onComplete?.();
 }
 
-function dispatchEvent(event: any, handlers: StreamHandlers) {
+function dispatchEvent(event: StreamEvent, handlers: StreamHandlers) {
   switch (event.type) {
     case "acknowledged":
       handlers.onAcknowledged?.();
@@ -107,7 +129,7 @@ function dispatchEvent(event: any, handlers: StreamHandlers) {
       handlers.onPhaseChange?.(event.phase || "", event.concept || "");
       break;
     case "result":
-      handlers.onResult?.(event.result || event);
+      handlers.onResult?.(event.result || (event as unknown as ActionResult));
       break;
     case "stream_complete":
       handlers.onComplete?.();
@@ -118,7 +140,11 @@ function dispatchEvent(event: any, handlers: StreamHandlers) {
   }
 }
 
-export function streamStartSession(learnerId: string, handlers: StreamHandlers, topic?: string) {
+export function streamStartSession(
+  learnerId: string,
+  handlers: StreamHandlers,
+  topic?: string
+) {
   const body: Record<string, string> = { learner_id: learnerId };
   if (topic) body.topic = topic;
   return streamRequest("/session/start/stream", body, handlers);

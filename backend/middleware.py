@@ -1,4 +1,5 @@
 import time
+import uuid
 import logging
 from collections import defaultdict
 from fastapi import Request, Response
@@ -10,6 +11,29 @@ logger = logging.getLogger(__name__)
 RATE_LIMIT = 60
 WINDOW_SECONDS = 60
 CLEANUP_INTERVAL = 300
+
+
+class RequestIDMiddleware(BaseHTTPMiddleware):
+    """Adds a unique X-Request-ID header to every response for debugging."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())[:8]
+        request.state.request_id = request_id
+        response = await call_next(request)
+        response.headers["X-Request-ID"] = request_id
+        return response
+
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """Adds standard security headers to all responses."""
+
+    async def dispatch(self, request: Request, call_next) -> Response:
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        return response
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
@@ -50,6 +74,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         duration = round((time.time() - start) * 1000, 2)
 
-        logger.info(f"{request.method} {request.url.path} {response.status_code} {duration}ms")
+        request_id = getattr(request.state, "request_id", "")
+        logger.info(f"[{request_id}] {request.method} {request.url.path} {response.status_code} {duration}ms")
 
         return response

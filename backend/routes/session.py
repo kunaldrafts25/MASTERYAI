@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from backend.agents.orchestrator import orchestrator
 from backend.services.learner_store import learner_store
-from backend.auth.dependencies import get_current_user, verify_ownership
+from backend.auth.dependencies import get_current_user, verify_ownership, validate_id
 from backend.events import EventBus, StreamEvent, create_sse_response
 
 logger = logging.getLogger(__name__)
@@ -48,6 +48,7 @@ async def start_session(req: StartSessionRequest, user: dict = Depends(get_curre
 
 @router.post("/{session_id}/respond")
 async def respond(session_id: str, req: RespondRequest, user: dict = Depends(get_current_user)):
+    validate_id(session_id, "session_id")
     session = orchestrator.get_session(session_id)
     if not session:
         session = await learner_store.get_session(session_id)
@@ -101,6 +102,7 @@ async def start_session_stream(req: StartSessionRequest, user: dict = Depends(ge
 @router.post("/{session_id}/respond/stream")
 async def respond_stream(session_id: str, req: RespondRequest, user: dict = Depends(get_current_user)):
     """Respond in a session with SSE streaming events."""
+    validate_id(session_id, "session_id")
     session = orchestrator.get_session(session_id)
     if not session:
         session = await learner_store.get_session(session_id)

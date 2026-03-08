@@ -2,48 +2,15 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import * as d3 from "d3";
-import { getGraph } from "@/lib/api";
-
-interface GraphNode {
-  id: string;
-  name: string;
-  domain: string;
-  difficulty_tier: number;
-  status: string;
-  mastery_score: number;
-  x?: number;
-  y?: number;
-  fx?: number | null;
-  fy?: number | null;
-}
-
-interface GraphEdge {
-  source: string | GraphNode;
-  target: string | GraphNode;
-  type: string;
-  strength?: number;
-}
-
-interface GraphData {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-}
-
-const STATUS_COLORS: Record<string, string> = {
-  mastered: "#22c55e",
-  practicing: "#eab308",
-  testing: "#eab308",
-  introduced: "#60a5fa",
-  decayed: "#f97316",
-  unknown: "#6b7280",
-};
+import { getGraph, GraphNode, GraphData } from "@/lib/api";
+import { GRAPH_STATUS_COLORS, GRAPH_EDGE_COLORS, GRAPH_CONFIG, ROUTES } from "@/lib/constants";
 
 function nodeRadius(tier: number) {
-  return 8 + (tier || 1) * 4;
+  return GRAPH_CONFIG.NODE_BASE_RADIUS + (tier || 1) * GRAPH_CONFIG.NODE_TIER_SCALE;
 }
 
 function nodeColor(status: string) {
-  return STATUS_COLORS[status] || STATUS_COLORS.unknown;
+  return GRAPH_STATUS_COLORS[status] || GRAPH_STATUS_COLORS.unknown;
 }
 
 export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
@@ -60,7 +27,7 @@ export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
   useEffect(() => {
     setLoading(true);
     getGraph(undefined, learnerId)
-      .then((res: any) => setData(res))
+      .then((res) => setData(res))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [learnerId]);
@@ -72,23 +39,20 @@ export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
     svg.selectAll("*").remove();
 
     const width = containerRef.current.clientWidth;
-    const height = 600;
+    const height = GRAPH_CONFIG.HEIGHT;
 
     svg.attr("viewBox", `0 0 ${width} ${height}`);
 
     const g = svg.append("g");
 
-    // Zoom
     const zoom = d3.zoom<SVGSVGElement, unknown>()
-      .scaleExtent([0.2, 5])
+      .scaleExtent([GRAPH_CONFIG.ZOOM_MIN, GRAPH_CONFIG.ZOOM_MAX])
       .on("zoom", (e) => g.attr("transform", e.transform));
     svg.call(zoom);
 
-    // Domain groups for subtle backgrounds
     const domains = Array.from(new Set(data.nodes.map((n) => n.domain)));
     const domainColor = d3.scaleOrdinal(d3.schemeTableau10).domain(domains);
 
-    // Simulation
     const nodes = data.nodes.map((d) => ({ ...d }));
     const edges = data.edges.map((d) => ({ ...d }));
 
@@ -99,26 +63,24 @@ export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
         d3
           .forceLink(edges as any)
           .id((d: any) => d.id)
-          .distance(100)
+          .distance(GRAPH_CONFIG.LINK_DISTANCE)
       )
-      .force("charge", d3.forceManyBody().strength(-200))
+      .force("charge", d3.forceManyBody().strength(GRAPH_CONFIG.CHARGE_STRENGTH))
       .force("center", d3.forceCenter(width / 2, height / 2))
-      .force("collision", d3.forceCollide().radius((d: any) => nodeRadius(d.difficulty_tier) + 4));
+      .force("collision", d3.forceCollide().radius((d: any) => nodeRadius(d.difficulty_tier) + GRAPH_CONFIG.COLLISION_PADDING));
 
-    // Draw edges
     const link = g
       .append("g")
       .selectAll("line")
       .data(edges)
       .join("line")
-      .attr("stroke", (d: any) => (d.type === "transfer" ? "#8b5cf6" : "#94a3b8"))
-      .attr("stroke-width", 1.5)
-      .attr("stroke-dasharray", (d: any) => (d.type === "transfer" ? "6 3" : "none"))
+      .attr("stroke", (d: any) => (d.type === "transfer" ? GRAPH_EDGE_COLORS.transfer : GRAPH_EDGE_COLORS.default))
+      .attr("stroke-width", GRAPH_CONFIG.EDGE_STROKE_WIDTH)
+      .attr("stroke-dasharray", (d: any) => (d.type === "transfer" ? GRAPH_CONFIG.EDGE_DASH_PATTERN : "none"))
       .attr("stroke-opacity", (d: any) =>
-        d.type === "transfer" ? (d.strength ?? 0.5) : 0.6
+        d.type === "transfer" ? (d.strength ?? 0.5) : GRAPH_CONFIG.EDGE_DEFAULT_OPACITY
       );
 
-    // Draw nodes
     const node = g
       .append("g")
       .selectAll("g")
@@ -144,32 +106,28 @@ export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
           }) as any
       );
 
-    // Domain halos
     node
       .append("circle")
-      .attr("r", (d: any) => nodeRadius(d.difficulty_tier) + 6)
+      .attr("r", (d: any) => nodeRadius(d.difficulty_tier) + GRAPH_CONFIG.HALO_PADDING)
       .attr("fill", (d: any) => domainColor(d.domain))
       .attr("opacity", 0.15);
 
-    // Main circles
     node
       .append("circle")
       .attr("r", (d: any) => nodeRadius(d.difficulty_tier))
       .attr("fill", (d: any) => nodeColor(d.status))
-      .attr("stroke", "#fff")
-      .attr("stroke-width", 2);
+      .attr("stroke", GRAPH_CONFIG.STROKE_COLOR)
+      .attr("stroke-width", GRAPH_CONFIG.STROKE_WIDTH);
 
-    // Labels
     node
       .append("text")
       .text((d: any) => d.name)
-      .attr("dy", (d: any) => nodeRadius(d.difficulty_tier) + 14)
+      .attr("dy", (d: any) => nodeRadius(d.difficulty_tier) + GRAPH_CONFIG.LABEL_OFFSET)
       .attr("text-anchor", "middle")
-      .attr("fill", "#cbd5e1")
-      .attr("font-size", 11)
+      .attr("fill", GRAPH_CONFIG.LABEL_COLOR)
+      .attr("font-size", GRAPH_CONFIG.LABEL_FONT_SIZE)
       .attr("pointer-events", "none");
 
-    // Hover
     node
       .on("mouseenter", (e, d: any) => {
         const rect = svgRef.current!.getBoundingClientRect();
@@ -179,10 +137,7 @@ export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
           node: d,
         });
       })
-      .on("mouseleave", () => setTooltip(null))
-      .on("click", (_e, d: any) => {
-        console.log("Node clicked:", d);
-      });
+      .on("mouseleave", () => setTooltip(null));
 
     simulation.on("tick", () => {
       link
@@ -203,7 +158,7 @@ export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[600px] bg-gray-900 rounded-lg">
+      <div className="flex items-center justify-center bg-gray-900 rounded-lg" style={{ height: GRAPH_CONFIG.HEIGHT }}>
         <p className="text-gray-400">Loading knowledge graph...</p>
       </div>
     );
@@ -211,7 +166,7 @@ export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
 
   if (!data || data.nodes.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-[600px] bg-gray-900 rounded-lg">
+      <div className="flex flex-col items-center justify-center bg-gray-900 rounded-lg" style={{ height: GRAPH_CONFIG.HEIGHT }}>
         <div className="w-16 h-16 rounded-full bg-emerald-600/20 flex items-center justify-center mb-4">
           <span className="text-2xl text-emerald-400">P</span>
         </div>
@@ -220,7 +175,7 @@ export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
           Start a learning session with your professor and your concepts will appear here as an interactive graph.
         </p>
         <a
-          href="/session"
+          href={ROUTES.SESSION}
           className="inline-block px-5 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-500 transition-colors text-sm font-medium"
         >
           Start learning
@@ -231,7 +186,7 @@ export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
 
   return (
     <div ref={containerRef} className="relative w-full bg-gray-900 rounded-lg overflow-hidden">
-      <svg ref={svgRef} className="w-full" style={{ height: 600 }} />
+      <svg ref={svgRef} className="w-full" style={{ height: GRAPH_CONFIG.HEIGHT }} />
 
       {tooltip && (
         <div
@@ -247,7 +202,7 @@ export default function KnowledgeGraph({ learnerId }: { learnerId?: string }) {
       )}
 
       <div className="absolute bottom-3 left-3 flex gap-3 text-xs text-gray-400">
-        {Object.entries(STATUS_COLORS).map(([status, color]) => (
+        {Object.entries(GRAPH_STATUS_COLORS).map(([status, color]) => (
           <span key={status} className="flex items-center gap-1">
             <span className="w-2.5 h-2.5 rounded-full inline-block" style={{ background: color }} />
             {status}

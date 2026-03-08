@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { getCalibration } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { NavBar } from "../providers";
+import { CALIBRATION } from "@/lib/constants";
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Legend,
@@ -26,8 +27,8 @@ function CalibrationContent() {
   useEffect(() => {
     if (!learnerId) return;
     getCalibration(learnerId)
-      .then((d: any) => setData(d))
-      .catch((e) => setError(e.message));
+      .then((d) => setData(d))
+      .catch((e: Error) => setError(e.message));
   }, [learnerId]);
 
   if (!learnerId) return <p className="text-zinc-400 p-8">No learner selected</p>;
@@ -36,11 +37,13 @@ function CalibrationContent() {
 
   const points = data.per_concept.map((p) => ({
     ...p,
-    fill: Math.abs(p.gap) < 0.15 ? "#22c55e" : Math.abs(p.gap) < 0.25 ? "#eab308" : "#ef4444",
+    fill: Math.abs(p.gap) < CALIBRATION.GAP_GOOD ? CALIBRATION.COLOR_GOOD
+      : Math.abs(p.gap) < CALIBRATION.GAP_WARN ? CALIBRATION.COLOR_WARN
+      : CALIBRATION.COLOR_DANGER,
   }));
 
-  const overconfident = points.filter((p) => p.gap > 0.15);
-  const underconfident = points.filter((p) => p.gap < -0.15);
+  const overconfident = points.filter((p) => p.gap > CALIBRATION.GAP_GOOD);
+  const underconfident = points.filter((p) => p.gap < -CALIBRATION.GAP_GOOD);
 
   return (
     <>
@@ -49,7 +52,7 @@ function CalibrationContent() {
       <h1 className="text-2xl font-bold text-white mb-1">Calibration Dashboard</h1>
       <p className="text-zinc-400 mb-6">How well does your confidence match your actual mastery?</p>
 
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="bg-zinc-900 rounded-lg p-4 border border-zinc-800">
           <p className="text-zinc-400 text-sm">Overall Gap</p>
           <p className="text-2xl font-bold text-white">{(data.overall_calibration * 100).toFixed(1)}%</p>
@@ -90,7 +93,7 @@ function CalibrationContent() {
                 }}
               />
               <Legend />
-              <Scatter name="Concepts" data={points} fill="#8884d8" />
+              <Scatter name="Concepts" data={points} fill={CALIBRATION.CHART_FILL} />
             </ScatterChart>
           </ResponsiveContainer>
         </div>

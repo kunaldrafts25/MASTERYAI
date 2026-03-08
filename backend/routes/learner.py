@@ -9,6 +9,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/learner", tags=["learner"])
 
 
+class UpdateProfileRequest(BaseModel):
+    name: str | None = None
+    experience_level: str | None = None
+
+
 class UpdateCareerTargetRequest(BaseModel):
     role_ids: list[str]
 
@@ -117,9 +122,27 @@ async def update_career_target(learner_id: str, req: UpdateCareerTargetRequest, 
     learner.career_targets = req.role_ids
     await learner_store.update_learner(learner)
 
-    from backend.agents.career_mapper import career_mapper_agent
-    readiness = career_mapper_agent.calculate_all_readiness(learner)
+    from backend.agents.curriculum import curriculum_agent
+    readiness = curriculum_agent.calculate_all_readiness(learner)
     return {"career_targets": learner.career_targets, "readiness": [r.model_dump() for r in readiness]}
+
+
+@router.put("/{learner_id}/profile")
+async def update_profile(learner_id: str, req: UpdateProfileRequest, user: dict = Depends(get_current_user)):
+    await verify_ownership(user, learner_id)
+    learner = await learner_store.get_learner(learner_id)
+    if not learner:
+        raise HTTPException(404, "Learner not found")
+
+    if req.name is not None:
+        learner.name = req.name
+    if req.experience_level is not None:
+        if req.experience_level not in ("beginner", "intermediate", "advanced"):
+            raise HTTPException(400, "experience_level must be beginner, intermediate, or advanced")
+        learner.experience_level = req.experience_level
+    await learner_store.update_learner(learner)
+    logger.info(f"Updated profile for {learner_id}")
+    return {"name": learner.name, "experience_level": learner.experience_level}
 
 
 @router.get("/{learner_id}/sessions")

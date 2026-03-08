@@ -1,9 +1,19 @@
+import re
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from backend.auth.jwt import verify_token
 from backend.services.learner_store import learner_store
 
 security = HTTPBearer()
+
+_UUID_RE = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
+
+
+def validate_id(value: str, label: str = "ID") -> str:
+    """Validate that a path parameter looks like a UUID."""
+    if not _UUID_RE.match(value):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Invalid {label} format")
+    return value
 
 
 async def get_current_user(

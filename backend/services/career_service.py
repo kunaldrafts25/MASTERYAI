@@ -10,12 +10,24 @@ class CareerService:
         self.roles: dict[str, CareerRole] = {}
 
     def load(self, path: str | None = None):
-        p = Path(path or settings.career_roles_path)
-        with open(p) as f:
-            data = json.load(f)
+        data = self._load_data(path)
         for raw in data["roles"]:
             role = CareerRole(**raw)
             self.roles[role.id] = role
+
+    def _load_data(self, path: str | None = None) -> dict:
+        if settings.aws_s3_data_bucket:
+            try:
+                import boto3
+                s3 = boto3.client("s3", region_name=settings.aws_region)
+                key = Path(settings.career_roles_path).name
+                resp = s3.get_object(Bucket=settings.aws_s3_data_bucket, Key=key)
+                return json.loads(resp["Body"].read())
+            except Exception:
+                pass  # fall through to local
+        p = Path(path or settings.career_roles_path)
+        with open(p) as f:
+            return json.load(f)
 
     def get_role(self, role_id: str) -> CareerRole | None:
         return self.roles.get(role_id)

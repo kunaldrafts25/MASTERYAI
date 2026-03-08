@@ -3,6 +3,7 @@ import hashlib
 import asyncio
 import time
 import logging
+import threading
 from collections import OrderedDict
 from backend.config import settings
 
@@ -37,11 +38,62 @@ class LRUCache:
         return len(self._data)
 
 
+class StreamingTextExtractor:
+    """Extracts user-facing text from streaming JSON responses.
+
+    Watches for known text fields (teaching_content, explanation, etc.)
+    and yields their string values as they stream in, allowing real-time
+    display to users while the full JSON is still being generated.
+    """
+
+    DEFAULT_FIELDS = frozenset({
+        "teaching_content", "explanation", "problem_statement",
+        "question", "message", "opening_question",
+        "misconception_explanation", "correct_explanation",
+    })
+
+    def __init__(self, fields=None):
+        self._fields = fields or self.DEFAULT_FIELDS
+        self._buffer = ""
+        self._in_value = False
+        self._escape_next = False
+
+    def feed(self, chunk: str) -> str:
+        """Feed a chunk of JSON text, return any extracted user-facing text."""
+        extracted = []
+        for ch in chunk:
+            self._buffer += ch
+
+            if self._in_value:
+                if self._escape_next:
+                    _MAP = {"n": "\n", "t": "\t", '"': '"', "\\": "\\", "/": "/"}
+                    extracted.append(_MAP.get(ch, ch))
+                    self._escape_next = False
+                elif ch == "\\":
+                    self._escape_next = True
+                elif ch == '"':
+                    self._in_value = False
+                else:
+                    extracted.append(ch)
+            elif ch == '"':
+                before = self._buffer[:-1].rstrip()
+                if before.endswith(":"):
+                    key_part = before[:-1].rstrip()
+                    for field in self._fields:
+                        if key_part.endswith(f'"{field}"'):
+                            self._in_value = True
+                            break
+
+            # Keep buffer bounded
+            if len(self._buffer) > 200:
+                self._buffer = self._buffer[-100:]
+
+        return "".join(extracted)
+
+
 class LLMClient:
 
     def __init__(self):
-        self.model = settings.llm_model
-        self.provider = settings.llm_provider
         self.call_count = 0
         self.total_tokens = 0
         self._cache = LRUCache(CACHE_MAX)
@@ -49,12 +101,11 @@ class LLMClient:
 
     def _get_client(self):
         if self._client is None:
-            if self.provider == "gemini":
-                from google import genai
-                self._client = genai.Client(api_key=settings.gemini_api_key)
-            else:
-                from groq import AsyncGroq
-                self._client = AsyncGroq(api_key=settings.groq_api_key)
+            import boto3
+            self._client = boto3.client(
+                "bedrock-runtime",
+                region_name=settings.aws_region,
+            )
         return self._client
 
     async def _redis_get(self, key: str) -> str | None:
@@ -99,74 +150,31 @@ class LLMClient:
         return result
 
     async def _real_generate(self, system: str, prompt: str) -> dict:
-        if self.provider == "gemini":
-            return await self._generate_gemini(system, prompt)
-        return await self._generate_groq(system, prompt)
+        return await self._generate_bedrock(system, prompt)
 
-    async def _generate_gemini(self, system: str, prompt: str) -> dict:
+    async def _generate_bedrock(self, system: str, prompt: str) -> dict:
         client = self._get_client()
-        from google.genai import types
+        model_id = settings.aws_bedrock_model_id
 
-        full_prompt = f"{system}\n\n{prompt}" if system else prompt
+        messages = [{"role": "user", "content": [{"text": prompt}]}]
+        system_prompt = "Respond ONLY with valid JSON. No markdown fences, no preamble."
+        if system:
+            system_prompt = f"{system}\n\n{system_prompt}"
+        system_list = [{"text": system_prompt}]
 
         last_err = None
         for attempt, delay in enumerate(RETRY_DELAYS):
             try:
                 response = await asyncio.wait_for(
                     asyncio.to_thread(
-                        client.models.generate_content,
-                        model=self.model,
-                        contents=full_prompt,
-                        config=types.GenerateContentConfig(
-                            temperature=settings.llm_temperature,
-                            max_output_tokens=settings.llm_max_tokens,
-                            response_mime_type="application/json",
-                        ),
-                    ),
-                    timeout=CALL_TIMEOUT,
-                )
-                break
-            except (asyncio.TimeoutError, Exception) as e:
-                last_err = e
-                logger.warning(
-                    "gemini attempt %d/%d failed: %s — retrying in %ds",
-                    attempt + 1, len(RETRY_DELAYS), str(e), delay,
-                )
-                if attempt < len(RETRY_DELAYS) - 1:
-                    await asyncio.sleep(delay)
-        else:
-            logger.error("all %d gemini attempts failed", len(RETRY_DELAYS))
-            raise last_err
-
-        usage = response.usage_metadata
-        prompt_tokens = usage.prompt_token_count if usage else 0
-        completion_tokens = usage.candidates_token_count if usage else 0
-        self.total_tokens += prompt_tokens + completion_tokens
-        logger.info(
-            "gemini tokens: prompt=%d completion=%d total=%d",
-            prompt_tokens, completion_tokens, prompt_tokens + completion_tokens,
-        )
-
-        text = response.text
-        return self._parse_json(text)
-
-    async def _generate_groq(self, system: str, prompt: str) -> dict:
-        client = self._get_client()
-        messages = []
-        if system:
-            messages.append({"role": "system", "content": system})
-        messages.append({"role": "user", "content": prompt})
-
-        last_err = None
-        for attempt, delay in enumerate(RETRY_DELAYS):
-            try:
-                completion = await asyncio.wait_for(
-                    client.chat.completions.create(
-                        model=self.model,
+                        client.converse,
+                        modelId=model_id,
                         messages=messages,
-                        temperature=settings.llm_temperature,
-                        max_tokens=settings.llm_max_tokens,
-                        response_format={"type": "json_object"},
+                        system=system_list,
+                        inferenceConfig={
+                            "temperature": settings.llm_temperature,
+                            "maxTokens": settings.llm_max_tokens,
+                        },
                     ),
                     timeout=CALL_TIMEOUT,
                 )
@@ -174,26 +182,119 @@ class LLMClient:
             except (asyncio.TimeoutError, Exception) as e:
                 last_err = e
                 logger.warning(
-                    "groq attempt %d/%d failed: %s — retrying in %ds",
+                    "bedrock attempt %d/%d failed: %s — retrying in %ds",
                     attempt + 1, len(RETRY_DELAYS), str(e), delay,
                 )
                 if attempt < len(RETRY_DELAYS) - 1:
                     await asyncio.sleep(delay)
         else:
-            logger.error("all %d groq attempts failed", len(RETRY_DELAYS))
+            logger.error("all %d bedrock attempts failed", len(RETRY_DELAYS))
             raise last_err
 
-        usage = completion.usage
-        prompt_tokens = usage.prompt_tokens if usage else 0
-        completion_tokens = usage.completion_tokens if usage else 0
+        usage = response.get("usage", {})
+        prompt_tokens = usage.get("inputTokens", 0)
+        completion_tokens = usage.get("outputTokens", 0)
         self.total_tokens += prompt_tokens + completion_tokens
         logger.info(
-            "groq tokens: prompt=%d completion=%d total=%d",
+            "bedrock tokens: prompt=%d completion=%d total=%d",
             prompt_tokens, completion_tokens, prompt_tokens + completion_tokens,
         )
 
-        text = completion.choices[0].message.content
+        text = response["output"]["message"]["content"][0]["text"]
         return self._parse_json(text)
+
+    # ------------------------------------------------------------------
+    # Streaming methods — real token-by-token delivery
+    # ------------------------------------------------------------------
+
+    async def generate_stream(self, prompt: str, system: str = "", on_chunk=None) -> dict:
+        """Streaming LLM call. Calls on_chunk(text_delta) for each token.
+
+        No caching — streaming is for user-facing content where
+        real-time delivery matters more than cache hits.
+        Falls back to non-streaming on error.
+        """
+        self.call_count += 1
+        start = time.monotonic()
+
+        try:
+            result = await self._stream_bedrock(system, prompt, on_chunk)
+
+            elapsed = time.monotonic() - start
+            logger.info("streaming llm call #%d took %.2fs", self.call_count, elapsed)
+            return result
+        except Exception as e:
+            logger.warning("streaming failed (%s), falling back to non-streaming", str(e))
+            return await self._real_generate(system, prompt)
+
+    async def _bridge_sync_stream(self, sync_fn, on_chunk) -> str:
+        """Bridge a synchronous streaming function to async.
+
+        sync_fn(loop, queue) should put ("chunk", text), ("done", None),
+        or ("error", exception) into the queue.
+        Returns the full concatenated text.
+        """
+        queue = asyncio.Queue()
+        loop = asyncio.get_running_loop()
+
+        thread = threading.Thread(target=sync_fn, args=(loop, queue), daemon=True)
+        thread.start()
+
+        full_text = ""
+        while True:
+            msg_type, data = await queue.get()
+            if msg_type == "done":
+                break
+            if msg_type == "error":
+                raise data
+            full_text += data
+            if on_chunk:
+                await on_chunk(data)
+
+        thread.join(timeout=5)
+        return full_text
+
+    async def _stream_bedrock(self, system: str, prompt: str, on_chunk) -> dict:
+        client = self._get_client()
+        model_id = settings.aws_bedrock_model_id
+
+        messages = [{"role": "user", "content": [{"text": prompt}]}]
+        system_prompt = "Respond ONLY with valid JSON. No markdown fences, no preamble."
+        if system:
+            system_prompt = f"{system}\n\n{system_prompt}"
+
+        meta = {}
+
+        def sync_fn(loop, q):
+            try:
+                resp = client.converse_stream(
+                    modelId=model_id,
+                    messages=messages,
+                    system=[{"text": system_prompt}],
+                    inferenceConfig={
+                        "temperature": settings.llm_temperature,
+                        "maxTokens": settings.llm_max_tokens,
+                    },
+                )
+                for event in resp["stream"]:
+                    if "contentBlockDelta" in event:
+                        text = event["contentBlockDelta"]["delta"].get("text", "")
+                        if text:
+                            loop.call_soon_threadsafe(q.put_nowait, ("chunk", text))
+                    elif "metadata" in event:
+                        usage = event["metadata"].get("usage", {})
+                        meta["input"] = usage.get("inputTokens", 0)
+                        meta["output"] = usage.get("outputTokens", 0)
+                loop.call_soon_threadsafe(q.put_nowait, ("done", None))
+            except Exception as e:
+                loop.call_soon_threadsafe(q.put_nowait, ("error", e))
+
+        full_text = await self._bridge_sync_stream(sync_fn, on_chunk)
+
+        inp, out = meta.get("input", 0), meta.get("output", 0)
+        self.total_tokens += inp + out
+        logger.info("bedrock stream tokens: prompt=%d completion=%d", inp, out)
+        return self._parse_json(full_text)
 
     @staticmethod
     def _parse_json(text: str) -> dict:

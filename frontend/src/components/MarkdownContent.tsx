@@ -1,5 +1,6 @@
 "use client";
 import { useState, useCallback } from "react";
+import { TIMING } from "@/lib/constants";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -10,7 +11,7 @@ function CopyButton({ text }: { text: string }) {
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), TIMING.COPY_FEEDBACK_MS);
     });
   }, [text]);
 
@@ -57,7 +58,7 @@ export default function MarkdownContent({ content }: { content: string }) {
             );
           }
           return (
-            <code className="bg-[#2f2f2f] px-1.5 py-0.5 rounded text-sm text-[#ececec]" {...props}>
+            <code className="bg-input-bg px-1.5 py-0.5 rounded text-sm text-foreground" {...props}>
               {children}
             </code>
           );

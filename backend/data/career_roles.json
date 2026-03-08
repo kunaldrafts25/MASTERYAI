@@ -3,70 +3,37 @@
     {
       "id": "junior_python_developer",
       "title": "Junior Python Developer",
-      "description": "Entry-level Python developer writing scripts, utilities, and small applications. Comfortable with core language features, object-oriented patterns, and basic file operations.",
+      "description": "Entry-level Python developer writing scripts, utilities, and small applications. Comfortable with core language features, object-oriented patterns, and basic testing.",
       "level": "entry",
       "required_skills": [
         {
           "name": "Python Fundamentals",
-          "concept_ids": [
-            "python.variables",
-            "python.control_flow",
-            "python.functions",
-            "python.scope",
-            "python.classes",
-            "python.exceptions",
-            "python.file_io",
-            "python.modules"
-          ],
+          "concept_ids": ["python.variables", "python.control_flow", "python.functions", "python.scope", "python.data_types", "python.loops", "python.string_methods", "python.exceptions", "python.file_io", "python.modules"],
           "minimum_mastery": 0.7,
-          "weight": 0.60
+          "weight": 0.55
         },
         {
           "name": "Python OOP",
-          "concept_ids": [
-            "python.classes",
-            "python.inheritance"
-          ],
+          "concept_ids": ["python.classes", "python.inheritance"],
           "minimum_mastery": 0.6,
           "weight": 0.25
         },
         {
-          "name": "Python File Handling",
-          "concept_ids": [
-            "python.file_io",
-            "python.exceptions",
-            "python.modules"
-          ],
+          "name": "Python Tooling",
+          "concept_ids": ["python.file_io", "python.exceptions", "python.modules", "python.virtual_envs"],
           "minimum_mastery": 0.6,
-          "weight": 0.15
+          "weight": 0.20
         }
       ],
       "nice_to_have_skills": [
-        {
-          "name": "List Comprehensions",
-          "concept_ids": ["python.list_comp"],
-          "minimum_mastery": 0.5,
-          "weight": 0.05
-        },
-        {
-          "name": "Basic Data Structures",
-          "concept_ids": ["ds.arrays_lists", "ds.hash_maps"],
-          "minimum_mastery": 0.4,
-          "weight": 0.05
-        }
+        {"name": "List Comprehensions", "concept_ids": ["python.list_comp"], "minimum_mastery": 0.5, "weight": 0.05},
+        {"name": "Basic Data Structures", "concept_ids": ["ds.arrays_lists", "ds.hash_maps"], "minimum_mastery": 0.4, "weight": 0.05},
+        {"name": "Version Control", "concept_ids": ["git.basics", "git.branching"], "minimum_mastery": 0.4, "weight": 0.05}
       ],
       "market_demand": "high",
-      "salary_range": {
-        "min": 55000,
-        "max": 75000,
-        "currency": "USD"
-      },
+      "salary_range": {"min": 55000, "max": 75000, "currency": "USD"},
       "growth_trend": "growing",
-      "related_roles": [
-        "junior_backend_engineer",
-        "data_structures_ta",
-        "junior_fullstack_developer"
-      ]
+      "related_roles": ["junior_backend_engineer", "data_structures_ta", "junior_fullstack_developer"]
     },
     {
       "id": "junior_backend_engineer",
@@ -76,82 +43,37 @@
       "required_skills": [
         {
           "name": "Python Fundamentals",
-          "concept_ids": [
-            "python.variables",
-            "python.control_flow",
-            "python.functions",
-            "python.scope",
-            "python.classes",
-            "python.exceptions",
-            "python.file_io",
-            "python.modules"
-          ],
+          "concept_ids": ["python.variables", "python.control_flow", "python.functions", "python.scope", "python.classes", "python.exceptions", "python.file_io", "python.modules", "python.decorators"],
           "minimum_mastery": 0.7,
           "weight": 0.25
         },
         {
-          "name": "Advanced Python",
-          "concept_ids": [
-            "python.closures",
-            "python.decorators",
-            "python.generators",
-            "python.async"
-          ],
-          "minimum_mastery": 0.6,
-          "weight": 0.20
-        },
-        {
           "name": "Web Fundamentals",
-          "concept_ids": [
-            "web.http",
-            "web.rest_apis",
-            "web.request_response",
-            "web.auth",
-            "web.error_handling"
-          ],
+          "concept_ids": ["web.http", "web.rest_apis", "web.request_response", "web.auth", "web.error_handling", "web.middleware"],
           "minimum_mastery": 0.7,
-          "weight": 0.30
+          "weight": 0.35
         },
         {
-          "name": "Data Handling",
-          "concept_ids": [
-            "web.database_queries",
-            "ds.hash_maps",
-            "ds.arrays_lists"
-          ],
+          "name": "Database Basics",
+          "concept_ids": ["db.sql_basics", "db.joins", "db.orm", "web.database_queries"],
           "minimum_mastery": 0.6,
-          "weight": 0.15
+          "weight": 0.25
         },
         {
           "name": "API Design",
-          "concept_ids": [
-            "web.api_design",
-            "web.middleware"
-          ],
+          "concept_ids": ["web.api_design", "web.cors", "web.error_handling"],
           "minimum_mastery": 0.6,
-          "weight": 0.10
+          "weight": 0.15
         }
       ],
       "nice_to_have_skills": [
-        {
-          "name": "Algorithm Knowledge",
-          "concept_ids": ["ds.sorting", "ds.searching"],
-          "minimum_mastery": 0.5,
-          "weight": 0.05
-        }
+        {"name": "Version Control", "concept_ids": ["git.basics", "git.branching", "git.pull_requests"], "minimum_mastery": 0.5, "weight": 0.05},
+        {"name": "Containerization", "concept_ids": ["devops.docker"], "minimum_mastery": 0.4, "weight": 0.05}
       ],
       "market_demand": "high",
-      "salary_range": {
-        "min": 65000,
-        "max": 95000,
-        "currency": "USD"
-      },
+      "salary_range": {"min": 65000, "max": 95000, "currency": "USD"},
       "growth_trend": "growing",
-      "related_roles": [
-        "junior_fullstack_developer",
-        "junior_python_developer",
-        "ml_engineer_entry"
-      ]
+      "related_roles": ["junior_fullstack_developer", "junior_python_developer", "senior_backend_engineer"]
     },
     {
       "id": "data_structures_ta",
@@ -161,335 +83,568 @@
       "required_skills": [
         {
           "name": "Python Mastery",
-          "concept_ids": [
-            "python.variables",
-            "python.control_flow",
-            "python.functions",
-            "python.scope",
-            "python.classes",
-            "python.inheritance",
-            "python.exceptions",
-            "python.recursion",
-            "python.file_io",
-            "python.modules"
-          ],
+          "concept_ids": ["python.variables", "python.control_flow", "python.functions", "python.scope", "python.classes", "python.inheritance", "python.exceptions", "python.recursion", "python.file_io", "python.modules"],
           "minimum_mastery": 0.75,
-          "weight": 0.30
-        },
-        {
-          "name": "Data Structures Core",
-          "concept_ids": [
-            "ds.arrays_lists",
-            "ds.hash_maps",
-            "ds.trees",
-            "ds.tree_traversal",
-            "ds.stacks",
-            "ds.queues",
-            "ds.linked_lists",
-            "ds.graphs"
-          ],
-          "minimum_mastery": 0.7,
-          "weight": 0.40
-        },
-        {
-          "name": "Algorithm Knowledge",
-          "concept_ids": [
-            "ds.sorting",
-            "ds.searching",
-            "python.recursion"
-          ],
-          "minimum_mastery": 0.7,
-          "weight": 0.30
-        }
-      ],
-      "nice_to_have_skills": [
-        {
-          "name": "Advanced Python Patterns",
-          "concept_ids": ["python.generators", "python.closures"],
-          "minimum_mastery": 0.5,
-          "weight": 0.05
-        }
-      ],
-      "market_demand": "medium",
-      "salary_range": {
-        "min": 40000,
-        "max": 55000,
-        "currency": "USD"
-      },
-      "growth_trend": "stable",
-      "related_roles": [
-        "junior_python_developer",
-        "ml_engineer_entry"
-      ]
-    },
-    {
-      "id": "junior_fullstack_developer",
-      "title": "Junior Fullstack Developer",
-      "description": "Mid-level developer comfortable across the entire stack. Builds frontend interfaces, backend APIs, and understands how data flows through a web application end to end.",
-      "level": "mid",
-      "required_skills": [
-        {
-          "name": "Python Full",
-          "concept_ids": [
-            "python.variables",
-            "python.control_flow",
-            "python.functions",
-            "python.scope",
-            "python.classes",
-            "python.inheritance",
-            "python.exceptions",
-            "python.closures",
-            "python.decorators",
-            "python.file_io",
-            "python.modules",
-            "python.async"
-          ],
-          "minimum_mastery": 0.7,
           "weight": 0.25
         },
         {
-          "name": "Web Full",
-          "concept_ids": [
-            "web.http",
-            "web.rest_apis",
-            "web.request_response",
-            "web.auth",
-            "web.error_handling",
-            "web.database_queries",
-            "web.middleware",
-            "web.api_design"
-          ],
+          "name": "Data Structures Core",
+          "concept_ids": ["ds.arrays_lists", "ds.hash_maps", "ds.trees", "ds.tree_traversal", "ds.stacks", "ds.queues", "ds.linked_lists", "ds.graphs"],
           "minimum_mastery": 0.7,
           "weight": 0.35
         },
         {
-          "name": "Frontend Basics",
-          "concept_ids": [
-            "web.http",
-            "web.rest_apis",
-            "web.request_response"
-          ],
+          "name": "Algorithms",
+          "concept_ids": ["ds.sorting", "ds.searching", "ds.graph_algorithms", "ds.complexity_analysis", "python.recursion"],
           "minimum_mastery": 0.7,
-          "weight": 0.15
+          "weight": 0.25
         },
         {
-          "name": "Data Structures",
-          "concept_ids": [
-            "ds.arrays_lists",
-            "ds.hash_maps",
-            "ds.trees"
-          ],
+          "name": "Advanced Structures",
+          "concept_ids": ["ds.heaps", "ds.tries", "ds.dynamic_programming"],
+          "minimum_mastery": 0.6,
+          "weight": 0.15
+        }
+      ],
+      "nice_to_have_skills": [
+        {"name": "Advanced Python", "concept_ids": ["python.generators", "python.closures"], "minimum_mastery": 0.5, "weight": 0.05}
+      ],
+      "market_demand": "medium",
+      "salary_range": {"min": 40000, "max": 55000, "currency": "USD"},
+      "growth_trend": "stable",
+      "related_roles": ["junior_python_developer", "ml_engineer_entry", "quantitative_analyst"]
+    },
+    {
+      "id": "junior_fullstack_developer",
+      "title": "Junior Fullstack Developer",
+      "description": "Mid-level developer comfortable across the entire stack. Builds frontend interfaces with React, backend APIs with Python, and understands data flow end to end.",
+      "level": "mid",
+      "required_skills": [
+        {
+          "name": "Python Backend",
+          "concept_ids": ["python.variables", "python.control_flow", "python.functions", "python.scope", "python.classes", "python.exceptions", "python.closures", "python.decorators", "python.async"],
+          "minimum_mastery": 0.7,
+          "weight": 0.20
+        },
+        {
+          "name": "Web & API Layer",
+          "concept_ids": ["web.http", "web.rest_apis", "web.request_response", "web.auth", "web.error_handling", "web.database_queries", "web.middleware", "web.api_design", "web.cors"],
+          "minimum_mastery": 0.7,
+          "weight": 0.25
+        },
+        {
+          "name": "Frontend Development",
+          "concept_ids": ["frontend.html_basics", "frontend.css_fundamentals", "frontend.css_flexbox", "frontend.dom_manipulation", "frontend.events", "frontend.responsive_design", "frontend.react_basics", "frontend.react_state", "frontend.react_hooks"],
+          "minimum_mastery": 0.65,
+          "weight": 0.30
+        },
+        {
+          "name": "Database Skills",
+          "concept_ids": ["db.sql_basics", "db.joins", "db.orm"],
           "minimum_mastery": 0.6,
           "weight": 0.15
         },
         {
-          "name": "System Design",
-          "concept_ids": [
-            "web.api_design",
-            "web.middleware",
-            "web.error_handling"
-          ],
+          "name": "Version Control",
+          "concept_ids": ["git.basics", "git.branching", "git.merging", "git.pull_requests"],
           "minimum_mastery": 0.6,
           "weight": 0.10
         }
       ],
       "nice_to_have_skills": [
-        {
-          "name": "Advanced Data Structures",
-          "concept_ids": ["ds.graphs", "ds.tree_traversal"],
-          "minimum_mastery": 0.5,
-          "weight": 0.05
-        },
-        {
-          "name": "Generators and Async",
-          "concept_ids": ["python.generators", "python.async"],
-          "minimum_mastery": 0.5,
-          "weight": 0.05
-        }
+        {"name": "TypeScript", "concept_ids": ["frontend.typescript"], "minimum_mastery": 0.5, "weight": 0.05},
+        {"name": "Containerization", "concept_ids": ["devops.docker", "devops.docker_compose"], "minimum_mastery": 0.4, "weight": 0.05}
       ],
       "market_demand": "high",
-      "salary_range": {
-        "min": 70000,
-        "max": 100000,
-        "currency": "USD"
-      },
+      "salary_range": {"min": 70000, "max": 100000, "currency": "USD"},
       "growth_trend": "growing",
-      "related_roles": [
-        "junior_backend_engineer",
-        "ml_engineer_entry"
-      ]
+      "related_roles": ["junior_backend_engineer", "frontend_developer", "senior_fullstack_engineer"]
     },
     {
       "id": "ml_engineer_entry",
       "title": "Entry-Level ML Engineer",
-      "description": "Mid-level engineer bridging software engineering and machine learning. Requires strong Python fundamentals, solid data structures knowledge, and comfort with advanced language features like generators and decorators.",
+      "description": "Mid-level engineer bridging software engineering and machine learning. Builds, evaluates, and deploys ML models with strong Python and data structures knowledge.",
       "level": "mid",
       "required_skills": [
         {
           "name": "Python Advanced",
-          "concept_ids": [
-            "python.variables",
-            "python.control_flow",
-            "python.functions",
-            "python.scope",
-            "python.classes",
-            "python.inheritance",
-            "python.closures",
-            "python.decorators",
-            "python.generators",
-            "python.recursion",
-            "python.async",
-            "python.list_comp"
-          ],
+          "concept_ids": ["python.variables", "python.control_flow", "python.functions", "python.classes", "python.inheritance", "python.closures", "python.decorators", "python.generators", "python.recursion", "python.list_comp", "python.type_hints"],
           "minimum_mastery": 0.75,
+          "weight": 0.25
+        },
+        {
+          "name": "Machine Learning Core",
+          "concept_ids": ["ml.supervised_learning", "ml.unsupervised_learning", "ml.model_evaluation", "ml.feature_engineering"],
+          "minimum_mastery": 0.7,
           "weight": 0.30
         },
         {
-          "name": "DS & Algorithms",
-          "concept_ids": [
-            "ds.arrays_lists",
-            "ds.hash_maps",
-            "ds.trees",
-            "ds.tree_traversal",
-            "ds.graphs",
-            "ds.sorting",
-            "ds.searching"
-          ],
-          "minimum_mastery": 0.7,
-          "weight": 0.35
-        },
-        {
-          "name": "Math Foundations",
-          "concept_ids": [
-            "python.recursion",
-            "python.generators",
-            "ds.trees",
-            "ds.graphs"
-          ],
+          "name": "Math & Statistics",
+          "concept_ids": ["ml.linear_algebra", "ml.statistics"],
           "minimum_mastery": 0.7,
           "weight": 0.20
         },
         {
-          "name": "ML Concepts",
-          "concept_ids": [
-            "python.classes",
-            "python.inheritance",
-            "python.decorators",
-            "ds.arrays_lists",
-            "ds.hash_maps"
-          ],
+          "name": "DS & Algorithms",
+          "concept_ids": ["ds.arrays_lists", "ds.hash_maps", "ds.sorting", "ds.searching", "ds.complexity_analysis"],
+          "minimum_mastery": 0.65,
+          "weight": 0.15
+        },
+        {
+          "name": "Data Handling",
+          "concept_ids": ["python.file_io", "python.modules", "db.sql_basics", "python.virtual_envs"],
+          "minimum_mastery": 0.6,
+          "weight": 0.10
+        }
+      ],
+      "nice_to_have_skills": [
+        {"name": "Deep Learning", "concept_ids": ["ml.neural_networks", "ml.deep_learning"], "minimum_mastery": 0.5, "weight": 0.05},
+        {"name": "API Integration", "concept_ids": ["web.rest_apis", "web.http"], "minimum_mastery": 0.5, "weight": 0.05}
+      ],
+      "market_demand": "high",
+      "salary_range": {"min": 80000, "max": 120000, "currency": "USD"},
+      "growth_trend": "growing",
+      "related_roles": ["data_scientist", "ml_ops_engineer", "quantitative_analyst"]
+    },
+    {
+      "id": "quantitative_analyst",
+      "title": "Junior Quantitative Analyst",
+      "description": "Entry-level quant building pricing models, back-testing trading strategies, and performing statistical analysis with strong algorithmic thinking.",
+      "level": "mid",
+      "required_skills": [
+        {
+          "name": "Python Fluency",
+          "concept_ids": ["python.variables", "python.control_flow", "python.functions", "python.scope", "python.classes", "python.closures", "python.decorators", "python.generators", "python.recursion", "python.list_comp"],
+          "minimum_mastery": 0.75,
+          "weight": 0.30
+        },
+        {
+          "name": "Math & Statistics",
+          "concept_ids": ["ml.linear_algebra", "ml.statistics"],
+          "minimum_mastery": 0.75,
+          "weight": 0.25
+        },
+        {
+          "name": "Algorithms & DS",
+          "concept_ids": ["ds.arrays_lists", "ds.hash_maps", "ds.trees", "ds.sorting", "ds.searching", "ds.dynamic_programming", "ds.complexity_analysis"],
+          "minimum_mastery": 0.70,
+          "weight": 0.25
+        },
+        {
+          "name": "Data Pipelines",
+          "concept_ids": ["python.file_io", "python.exceptions", "python.modules", "db.sql_basics"],
+          "minimum_mastery": 0.60,
+          "weight": 0.20
+        }
+      ],
+      "nice_to_have_skills": [
+        {"name": "API Integration", "concept_ids": ["web.rest_apis", "web.http"], "minimum_mastery": 0.50, "weight": 0.05},
+        {"name": "ML Foundations", "concept_ids": ["ml.supervised_learning", "ml.model_evaluation"], "minimum_mastery": 0.50, "weight": 0.05}
+      ],
+      "market_demand": "high",
+      "salary_range": {"min": 95000, "max": 150000, "currency": "USD"},
+      "growth_trend": "growing",
+      "related_roles": ["ml_engineer_entry", "data_scientist", "data_structures_ta"]
+    },
+    {
+      "id": "frontend_developer",
+      "title": "Frontend Developer",
+      "description": "Entry-level frontend developer building responsive user interfaces with HTML, CSS, and React. Focuses on component architecture and delivering polished user experiences.",
+      "level": "entry",
+      "required_skills": [
+        {
+          "name": "HTML & CSS",
+          "concept_ids": ["frontend.html_basics", "frontend.css_fundamentals", "frontend.css_flexbox", "frontend.css_grid", "frontend.responsive_design"],
+          "minimum_mastery": 0.7,
+          "weight": 0.30
+        },
+        {
+          "name": "JavaScript & DOM",
+          "concept_ids": ["frontend.dom_manipulation", "frontend.events"],
+          "minimum_mastery": 0.7,
+          "weight": 0.25
+        },
+        {
+          "name": "React Development",
+          "concept_ids": ["frontend.react_basics", "frontend.react_state", "frontend.react_hooks"],
+          "minimum_mastery": 0.65,
+          "weight": 0.30
+        },
+        {
+          "name": "Web Fundamentals",
+          "concept_ids": ["web.http", "web.rest_apis", "web.request_response"],
           "minimum_mastery": 0.6,
           "weight": 0.15
         }
       ],
       "nice_to_have_skills": [
-        {
-          "name": "Web Integration",
-          "concept_ids": ["web.rest_apis", "web.http"],
-          "minimum_mastery": 0.5,
-          "weight": 0.05
-        },
-        {
-          "name": "File and Module Handling",
-          "concept_ids": ["python.file_io", "python.modules", "python.exceptions"],
-          "minimum_mastery": 0.5,
-          "weight": 0.05
-        }
+        {"name": "TypeScript", "concept_ids": ["frontend.typescript"], "minimum_mastery": 0.5, "weight": 0.05},
+        {"name": "Build Tools", "concept_ids": ["frontend.build_tools"], "minimum_mastery": 0.4, "weight": 0.05},
+        {"name": "Version Control", "concept_ids": ["git.basics", "git.branching"], "minimum_mastery": 0.4, "weight": 0.05}
       ],
       "market_demand": "high",
-      "salary_range": {
-        "min": 80000,
-        "max": 120000,
-        "currency": "USD"
-      },
+      "salary_range": {"min": 55000, "max": 80000, "currency": "USD"},
       "growth_trend": "growing",
-      "related_roles": [
-        "junior_backend_engineer",
-        "data_structures_ta",
-        "junior_fullstack_developer"
-      ]
+      "related_roles": ["junior_fullstack_developer", "mobile_developer", "senior_fullstack_engineer"]
     },
     {
-      "id": "quantitative_analyst",
-      "title": "Junior Quantitative Analyst",
-      "description": "Entry-level quant building pricing models, back-testing trading strategies, and performing statistical analysis. Requires strong Python fluency, solid algorithmic thinking, and comfort with data pipelines.",
-      "level": "mid",
+      "id": "senior_backend_engineer",
+      "title": "Senior Backend Engineer",
+      "description": "Senior engineer designing scalable backend systems. Owns architecture decisions around databases, caching, security, and reliability for high-traffic services.",
+      "level": "senior",
       "required_skills": [
         {
-          "name": "Python Fluency",
-          "concept_ids": [
-            "python.variables",
-            "python.control_flow",
-            "python.functions",
-            "python.scope",
-            "python.classes",
-            "python.closures",
-            "python.decorators",
-            "python.generators",
-            "python.recursion",
-            "python.list_comp"
-          ],
-          "minimum_mastery": 0.75,
-          "weight": 0.35
-        },
-        {
-          "name": "Algorithms & Data Structures",
-          "concept_ids": [
-            "ds.arrays_lists",
-            "ds.hash_maps",
-            "ds.trees",
-            "ds.sorting",
-            "ds.searching"
-          ],
-          "minimum_mastery": 0.70,
-          "weight": 0.30
-        },
-        {
-          "name": "Numerical & Recursive Thinking",
-          "concept_ids": [
-            "python.recursion",
-            "ds.tree_traversal",
-            "ds.graphs"
-          ],
-          "minimum_mastery": 0.70,
+          "name": "Python Mastery",
+          "concept_ids": ["python.functions", "python.classes", "python.inheritance", "python.closures", "python.decorators", "python.generators", "python.async", "python.context_managers", "python.type_hints", "python.testing"],
+          "minimum_mastery": 0.8,
           "weight": 0.20
         },
         {
-          "name": "Data Pipeline Foundations",
-          "concept_ids": [
-            "python.file_io",
-            "python.exceptions",
-            "python.modules"
-          ],
-          "minimum_mastery": 0.60,
+          "name": "Web & API Architecture",
+          "concept_ids": ["web.http", "web.rest_apis", "web.auth", "web.error_handling", "web.middleware", "web.api_design", "web.websockets", "web.graphql", "web.caching", "web.cors"],
+          "minimum_mastery": 0.8,
+          "weight": 0.25
+        },
+        {
+          "name": "Database Engineering",
+          "concept_ids": ["db.sql_basics", "db.joins", "db.indexes", "db.normalization", "db.transactions", "db.nosql", "db.redis", "db.query_optimization"],
+          "minimum_mastery": 0.75,
+          "weight": 0.20
+        },
+        {
+          "name": "System Design",
+          "concept_ids": ["sysdesign.scalability", "sysdesign.load_balancing", "sysdesign.caching_strategies", "sysdesign.message_queues", "sysdesign.microservices", "sysdesign.rate_limiting"],
+          "minimum_mastery": 0.7,
+          "weight": 0.20
+        },
+        {
+          "name": "Security",
+          "concept_ids": ["security.owasp_top10", "security.sql_injection", "security.xss", "security.jwt_auth", "security.encryption"],
+          "minimum_mastery": 0.7,
           "weight": 0.15
         }
       ],
       "nice_to_have_skills": [
+        {"name": "DevOps", "concept_ids": ["devops.docker", "devops.ci_cd"], "minimum_mastery": 0.5, "weight": 0.05},
+        {"name": "Advanced System Design", "concept_ids": ["sysdesign.database_sharding", "sysdesign.cap_theorem", "sysdesign.cdn"], "minimum_mastery": 0.5, "weight": 0.05}
+      ],
+      "market_demand": "high",
+      "salary_range": {"min": 130000, "max": 190000, "currency": "USD"},
+      "growth_trend": "growing",
+      "related_roles": ["junior_backend_engineer", "senior_fullstack_engineer", "devops_engineer"]
+    },
+    {
+      "id": "devops_engineer",
+      "title": "DevOps Engineer",
+      "description": "Mid-level engineer focused on infrastructure automation, CI/CD pipelines, and container orchestration. Bridges development and operations for reliable deployments.",
+      "level": "mid",
+      "required_skills": [
         {
-          "name": "API Integration",
-          "concept_ids": ["web.rest_apis", "web.http"],
-          "minimum_mastery": 0.50,
-          "weight": 0.05
+          "name": "Linux & Shell",
+          "concept_ids": ["devops.linux_basics", "devops.shell_scripting"],
+          "minimum_mastery": 0.75,
+          "weight": 0.20
         },
         {
-          "name": "Async Programming",
-          "concept_ids": ["python.async"],
-          "minimum_mastery": 0.50,
+          "name": "Containers & Orchestration",
+          "concept_ids": ["devops.docker", "devops.docker_compose", "devops.kubernetes"],
+          "minimum_mastery": 0.7,
+          "weight": 0.30
+        },
+        {
+          "name": "CI/CD & Automation",
+          "concept_ids": ["devops.ci_cd", "devops.github_actions", "devops.terraform"],
+          "minimum_mastery": 0.7,
+          "weight": 0.25
+        },
+        {
+          "name": "Monitoring & Cloud",
+          "concept_ids": ["devops.monitoring", "devops.cloud_basics"],
+          "minimum_mastery": 0.65,
+          "weight": 0.15
+        },
+        {
+          "name": "Networking",
+          "concept_ids": ["security.network_security", "web.http"],
+          "minimum_mastery": 0.6,
+          "weight": 0.10
+        }
+      ],
+      "nice_to_have_skills": [
+        {"name": "Scripting", "concept_ids": ["python.functions", "python.file_io", "python.modules"], "minimum_mastery": 0.5, "weight": 0.05},
+        {"name": "Git Workflows", "concept_ids": ["git.branching", "git.git_flow", "git.pull_requests"], "minimum_mastery": 0.5, "weight": 0.05}
+      ],
+      "market_demand": "high",
+      "salary_range": {"min": 90000, "max": 140000, "currency": "USD"},
+      "growth_trend": "growing",
+      "related_roles": ["cloud_engineer", "senior_backend_engineer", "ml_ops_engineer"]
+    },
+    {
+      "id": "cloud_engineer",
+      "title": "Cloud Engineer",
+      "description": "Mid-level engineer specializing in cloud infrastructure, infrastructure-as-code, and production monitoring. Designs resilient architectures and ensures system reliability.",
+      "level": "mid",
+      "required_skills": [
+        {
+          "name": "Cloud & Infrastructure",
+          "concept_ids": ["devops.cloud_basics", "devops.terraform", "devops.monitoring"],
+          "minimum_mastery": 0.75,
+          "weight": 0.30
+        },
+        {
+          "name": "Containers",
+          "concept_ids": ["devops.docker", "devops.docker_compose", "devops.kubernetes"],
+          "minimum_mastery": 0.7,
+          "weight": 0.25
+        },
+        {
+          "name": "Linux & Networking",
+          "concept_ids": ["devops.linux_basics", "devops.shell_scripting", "security.network_security"],
+          "minimum_mastery": 0.7,
+          "weight": 0.20
+        },
+        {
+          "name": "CI/CD",
+          "concept_ids": ["devops.ci_cd", "devops.github_actions"],
+          "minimum_mastery": 0.65,
+          "weight": 0.15
+        },
+        {
+          "name": "System Design",
+          "concept_ids": ["sysdesign.scalability", "sysdesign.load_balancing", "sysdesign.cdn"],
+          "minimum_mastery": 0.6,
+          "weight": 0.10
+        }
+      ],
+      "nice_to_have_skills": [
+        {"name": "Security", "concept_ids": ["security.encryption", "security.network_security"], "minimum_mastery": 0.5, "weight": 0.05}
+      ],
+      "market_demand": "high",
+      "salary_range": {"min": 95000, "max": 145000, "currency": "USD"},
+      "growth_trend": "growing",
+      "related_roles": ["devops_engineer", "senior_backend_engineer", "security_engineer"]
+    },
+    {
+      "id": "data_scientist",
+      "title": "Data Scientist",
+      "description": "Mid-level data professional extracting insights using statistical methods and machine learning. Combines Python programming with database skills to drive data-informed decisions.",
+      "level": "mid",
+      "required_skills": [
+        {
+          "name": "Python for Data",
+          "concept_ids": ["python.variables", "python.control_flow", "python.functions", "python.classes", "python.list_comp", "python.generators", "python.file_io", "python.modules"],
+          "minimum_mastery": 0.7,
+          "weight": 0.20
+        },
+        {
+          "name": "Machine Learning",
+          "concept_ids": ["ml.supervised_learning", "ml.unsupervised_learning", "ml.model_evaluation", "ml.feature_engineering"],
+          "minimum_mastery": 0.7,
+          "weight": 0.30
+        },
+        {
+          "name": "Math & Statistics",
+          "concept_ids": ["ml.linear_algebra", "ml.statistics"],
+          "minimum_mastery": 0.75,
+          "weight": 0.25
+        },
+        {
+          "name": "Data & SQL",
+          "concept_ids": ["db.sql_basics", "db.joins", "db.query_optimization"],
+          "minimum_mastery": 0.65,
+          "weight": 0.15
+        },
+        {
+          "name": "Data Structures",
+          "concept_ids": ["ds.arrays_lists", "ds.hash_maps", "ds.sorting"],
+          "minimum_mastery": 0.6,
+          "weight": 0.10
+        }
+      ],
+      "nice_to_have_skills": [
+        {"name": "Deep Learning", "concept_ids": ["ml.neural_networks", "ml.deep_learning"], "minimum_mastery": 0.5, "weight": 0.05},
+        {"name": "NLP & Vision", "concept_ids": ["ml.nlp", "ml.computer_vision"], "minimum_mastery": 0.4, "weight": 0.05}
+      ],
+      "market_demand": "high",
+      "salary_range": {"min": 85000, "max": 130000, "currency": "USD"},
+      "growth_trend": "growing",
+      "related_roles": ["ml_engineer_entry", "quantitative_analyst", "ml_ops_engineer"]
+    },
+    {
+      "id": "security_engineer",
+      "title": "Security Engineer",
+      "description": "Mid-level engineer focused on application and network security. Identifies vulnerabilities, implements security controls, and ensures compliance across OWASP Top 10.",
+      "level": "mid",
+      "required_skills": [
+        {
+          "name": "Application Security",
+          "concept_ids": ["security.owasp_top10", "security.xss", "security.sql_injection", "security.csrf"],
+          "minimum_mastery": 0.75,
+          "weight": 0.30
+        },
+        {
+          "name": "Cryptography & Auth",
+          "concept_ids": ["security.encryption", "security.hashing", "security.jwt_auth", "web.auth"],
+          "minimum_mastery": 0.7,
+          "weight": 0.25
+        },
+        {
+          "name": "Network Security",
+          "concept_ids": ["security.network_security", "web.http", "web.cors", "web.middleware"],
+          "minimum_mastery": 0.7,
+          "weight": 0.25
+        },
+        {
+          "name": "Python Scripting",
+          "concept_ids": ["python.functions", "python.classes", "python.file_io", "python.modules", "python.exceptions"],
+          "minimum_mastery": 0.65,
+          "weight": 0.20
+        }
+      ],
+      "nice_to_have_skills": [
+        {"name": "Linux", "concept_ids": ["devops.linux_basics", "devops.shell_scripting"], "minimum_mastery": 0.5, "weight": 0.05}
+      ],
+      "market_demand": "high",
+      "salary_range": {"min": 100000, "max": 155000, "currency": "USD"},
+      "growth_trend": "growing",
+      "related_roles": ["senior_backend_engineer", "cloud_engineer", "devops_engineer"]
+    },
+    {
+      "id": "mobile_developer",
+      "title": "Mobile Developer",
+      "description": "Entry-level mobile developer building cross-platform apps using React Native. Leverages frontend fundamentals and component architecture for native mobile experiences.",
+      "level": "entry",
+      "required_skills": [
+        {
+          "name": "React & Components",
+          "concept_ids": ["frontend.react_basics", "frontend.react_state", "frontend.react_hooks"],
+          "minimum_mastery": 0.7,
+          "weight": 0.35
+        },
+        {
+          "name": "Frontend Fundamentals",
+          "concept_ids": ["frontend.html_basics", "frontend.css_fundamentals", "frontend.css_flexbox", "frontend.responsive_design"],
+          "minimum_mastery": 0.65,
+          "weight": 0.25
+        },
+        {
+          "name": "JavaScript Core",
+          "concept_ids": ["frontend.dom_manipulation", "frontend.events", "frontend.typescript"],
+          "minimum_mastery": 0.65,
+          "weight": 0.25
+        },
+        {
+          "name": "API Integration",
+          "concept_ids": ["web.http", "web.rest_apis", "web.request_response"],
+          "minimum_mastery": 0.6,
+          "weight": 0.15
+        }
+      ],
+      "nice_to_have_skills": [
+        {"name": "Build Tools", "concept_ids": ["frontend.build_tools"], "minimum_mastery": 0.4, "weight": 0.05},
+        {"name": "Version Control", "concept_ids": ["git.basics", "git.branching"], "minimum_mastery": 0.4, "weight": 0.05}
+      ],
+      "market_demand": "medium",
+      "salary_range": {"min": 60000, "max": 85000, "currency": "USD"},
+      "growth_trend": "stable",
+      "related_roles": ["frontend_developer", "junior_fullstack_developer"]
+    },
+    {
+      "id": "senior_fullstack_engineer",
+      "title": "Senior Fullstack Engineer",
+      "description": "Senior engineer who architects complete products from database to UI. Leads technical decisions across the stack with system design, security, and DevOps best practices.",
+      "level": "senior",
+      "required_skills": [
+        {
+          "name": "Backend Mastery",
+          "concept_ids": ["python.classes", "python.decorators", "python.async", "python.context_managers", "python.type_hints", "python.testing", "web.rest_apis", "web.auth", "web.middleware", "web.api_design", "web.websockets", "web.caching"],
+          "minimum_mastery": 0.8,
+          "weight": 0.25
+        },
+        {
+          "name": "Frontend Mastery",
+          "concept_ids": ["frontend.html_basics", "frontend.css_fundamentals", "frontend.css_flexbox", "frontend.css_grid", "frontend.dom_manipulation", "frontend.events", "frontend.responsive_design", "frontend.react_basics", "frontend.react_state", "frontend.react_hooks", "frontend.typescript", "frontend.build_tools"],
+          "minimum_mastery": 0.75,
+          "weight": 0.25
+        },
+        {
+          "name": "Database & Data",
+          "concept_ids": ["db.sql_basics", "db.joins", "db.indexes", "db.normalization", "db.transactions", "db.nosql", "db.redis", "db.orm"],
+          "minimum_mastery": 0.7,
+          "weight": 0.20
+        },
+        {
+          "name": "System Design",
+          "concept_ids": ["sysdesign.scalability", "sysdesign.load_balancing", "sysdesign.caching_strategies", "sysdesign.microservices", "sysdesign.api_gateway", "sysdesign.rate_limiting"],
+          "minimum_mastery": 0.7,
+          "weight": 0.15
+        },
+        {
+          "name": "DevOps",
+          "concept_ids": ["devops.docker", "devops.docker_compose", "devops.ci_cd", "devops.github_actions"],
+          "minimum_mastery": 0.65,
+          "weight": 0.10
+        },
+        {
+          "name": "Security",
+          "concept_ids": ["security.owasp_top10", "security.xss", "security.csrf", "security.jwt_auth"],
+          "minimum_mastery": 0.65,
           "weight": 0.05
         }
       ],
+      "nice_to_have_skills": [
+        {"name": "Advanced System Design", "concept_ids": ["sysdesign.message_queues", "sysdesign.database_sharding", "sysdesign.cdn"], "minimum_mastery": 0.5, "weight": 0.05}
+      ],
       "market_demand": "high",
-      "salary_range": {
-        "min": 95000,
-        "max": 150000,
-        "currency": "USD"
-      },
+      "salary_range": {"min": 140000, "max": 200000, "currency": "USD"},
       "growth_trend": "growing",
-      "related_roles": [
-        "ml_engineer_entry",
-        "data_structures_ta"
-      ]
+      "related_roles": ["junior_fullstack_developer", "senior_backend_engineer", "frontend_developer"]
+    },
+    {
+      "id": "ml_ops_engineer",
+      "title": "MLOps Engineer",
+      "description": "Senior engineer who operationalizes ML models, building infrastructure to train, deploy, monitor, and retrain models at scale. Bridges ML, DevOps, and cloud.",
+      "level": "senior",
+      "required_skills": [
+        {
+          "name": "ML Fundamentals",
+          "concept_ids": ["ml.supervised_learning", "ml.unsupervised_learning", "ml.model_evaluation", "ml.feature_engineering", "ml.neural_networks"],
+          "minimum_mastery": 0.7,
+          "weight": 0.20
+        },
+        {
+          "name": "Python Engineering",
+          "concept_ids": ["python.classes", "python.decorators", "python.async", "python.context_managers", "python.type_hints", "python.testing", "python.virtual_envs"],
+          "minimum_mastery": 0.75,
+          "weight": 0.20
+        },
+        {
+          "name": "DevOps & Infra",
+          "concept_ids": ["devops.docker", "devops.docker_compose", "devops.kubernetes", "devops.ci_cd", "devops.github_actions"],
+          "minimum_mastery": 0.75,
+          "weight": 0.25
+        },
+        {
+          "name": "Cloud & Monitoring",
+          "concept_ids": ["devops.cloud_basics", "devops.terraform", "devops.monitoring", "devops.linux_basics"],
+          "minimum_mastery": 0.7,
+          "weight": 0.20
+        },
+        {
+          "name": "Data Infrastructure",
+          "concept_ids": ["db.sql_basics", "db.nosql", "db.redis", "web.rest_apis", "web.api_design"],
+          "minimum_mastery": 0.65,
+          "weight": 0.15
+        }
+      ],
+      "nice_to_have_skills": [
+        {"name": "System Design", "concept_ids": ["sysdesign.scalability", "sysdesign.message_queues", "sysdesign.microservices"], "minimum_mastery": 0.5, "weight": 0.05},
+        {"name": "Deep Learning", "concept_ids": ["ml.deep_learning", "ml.nlp", "ml.computer_vision"], "minimum_mastery": 0.5, "weight": 0.05}
+      ],
+      "market_demand": "high",
+      "salary_range": {"min": 135000, "max": 195000, "currency": "USD"},
+      "growth_trend": "growing",
+      "related_roles": ["ml_engineer_entry", "devops_engineer", "cloud_engineer", "data_scientist"]
     }
   ]
 }

@@ -103,7 +103,8 @@ Return JSON: {{"reflection": "your analysis of what happened", "recommended_stra
         return None
 
     async def teach(
-        self, concept: Concept, learner: LearnerState, strategy: str | None = None, misconceptions: list[str] | None = None
+        self, concept: Concept, learner: LearnerState, strategy: str | None = None,
+        misconceptions: list[str] | None = None, event_bus=None
     ) -> dict:
         if not strategy:
             strategy = self.select_strategy(learner, concept.id, misconceptions)
@@ -120,14 +121,18 @@ Return JSON: {{"reflection": "your analysis of what happened", "recommended_stra
                     misconception_text += f"\nActive misconception: {m.id} - {m.description}"
 
         strategy_instructions = {
-            "socratic": "Ask probing questions that lead the learner to discover the concept. Never give the answer directly.",
-            "worked_examples": "Show 2-3 worked examples of increasing complexity. Explain each step clearly.",
-            "analogy": "Connect the concept to something the learner already knows. Use analogies from everyday life or mastered concepts.",
-            "debugging_exercise": "Present code that contains a bug related to the concept. Ask the learner to find and fix it.",
-            "explain_back": "Ask the learner to explain the concept as if teaching someone else. Gaps become visible through their explanation.",
+            "socratic": "Guide them to discover the concept through thoughtful questions. Don't give the answer — help them find it.",
+            "worked_examples": "Walk through 2-3 examples, building from simple to complex. Explain your thinking at each step like a mentor would.",
+            "analogy": "Connect this to something they already know. Use relatable, everyday analogies or build on concepts they've mastered.",
+            "debugging_exercise": "Show them code with a subtle bug related to the concept. Challenge them to spot and fix it — make it feel like a puzzle, not a test.",
+            "explain_back": "Ask them to explain the concept in their own words, as if teaching a friend. This reveals gaps naturally.",
         }
 
-        system = f"You are an expert teacher using the {strategy} method."
+        system = f"""You are a friendly, skilled tutor who makes learning feel like a great conversation.
+Use the {strategy} method, but keep it natural — talk like a knowledgeable friend, not a textbook.
+Be encouraging, use casual language, and make the learner feel smart for asking questions.
+Break down complex ideas into digestible pieces. Use real-world examples they can relate to."""
+
         prompt = f"""CONCEPT TO TEACH: {concept.name}
 DESCRIPTION: {concept.description}
 DOMAIN: {concept.domain}
@@ -140,11 +145,15 @@ LEARNER PROFILE:
 STRATEGY: {strategy}
 {strategy_instructions.get(strategy, '')}
 
-Teach the concept. End with a check-for-understanding question.
+Teach this concept conversationally. Make it engaging and clear — like you're explaining it to a curious friend over coffee.
+End with a natural check-for-understanding question (not a quiz — more like "Does that make sense? What do you think would happen if...?").
 
 Return JSON with: teaching_content, check_question, expected_check_answer, concepts_referenced, strategy_used, estimated_time_minutes"""
 
-        result = await self._llm_call(system, prompt)
+        if event_bus:
+            result = await self._llm_call_stream(system, prompt, event_bus=event_bus)
+        else:
+            result = await self._llm_call(system, prompt)
         result["strategy_used"] = strategy
         result["concept_id"] = concept.id
         return result

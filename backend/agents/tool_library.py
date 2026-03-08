@@ -1,7 +1,7 @@
 # extended tool library — new pedagogical primitives for richer teaching actions
 
 import logging
-from backend.services.llm_client import llm_client
+from backend.agents.base import streaming_llm_call
 from backend.services.knowledge_graph import knowledge_graph
 
 logger = logging.getLogger(__name__)
@@ -45,11 +45,12 @@ Transfer strength: {knowledge_graph.get_transfer_edge(analogy_source, concept_id
 
 Learner: {learner.name}, experience: {learner.experience_level}"""
 
-    result = await llm_client.generate(prompt, system=system)
+    event_bus = getattr(session, '_event_bus', None)
+    result = await streaming_llm_call(system, prompt, event_bus=event_bus, agent_name="teacher")
     result["action"] = "teach"
     result["strategy_used"] = "analogy"
     result["concept_id"] = concept_id
-    return {"action": "teach", "content": result, "_llm_calls": 1}
+    return {"action": "teach", "content": result, "_llm_calls": 1, "_streamed": event_bus is not None}
 
 
 async def tool_composite_exercise(*, session, learner, concepts: list[str] | str = "",
@@ -86,8 +87,9 @@ Exercise type: {exercise_type}
 Learner: {learner.name}, experience: {learner.experience_level}
 Mastered concepts: {list(k for k, v in learner.concept_states.items() if v.status == 'mastered')[:10]}"""
 
-    result = await llm_client.generate(prompt, system=system)
-    return {"action": "practice", "content": result, "_llm_calls": 1}
+    event_bus = getattr(session, '_event_bus', None)
+    result = await streaming_llm_call(system, prompt, event_bus=event_bus, agent_name="examiner")
+    return {"action": "practice", "content": result, "_llm_calls": 1, "_streamed": event_bus is not None}
 
 
 async def tool_socratic_dialogue(*, session, learner, concept_id: str,
@@ -125,8 +127,9 @@ Domain: {concept.domain}
 Starting question hint: {starting_question or 'Choose your own opening'}
 Learner: {learner.name}"""
 
-    result = await llm_client.generate(prompt, system=system)
-    return {"action": "dialogue", "content": result, "_llm_calls": 1}
+    event_bus = getattr(session, '_event_bus', None)
+    result = await streaming_llm_call(system, prompt, event_bus=event_bus, agent_name="teacher")
+    return {"action": "dialogue", "content": result, "_llm_calls": 1, "_streamed": event_bus is not None}
 
 
 async def tool_address_misconception(*, session, learner, misconception_id: str = "",
@@ -166,8 +169,9 @@ Description: {misconception.description if misconception else 'Unknown misconcep
 Indicators: {misconception.indicators if misconception else []}
 Learner: {learner.name}"""
 
-    result = await llm_client.generate(prompt, system=system)
-    return {"action": "teach", "content": result, "_llm_calls": 1}
+    event_bus = getattr(session, '_event_bus', None)
+    result = await streaming_llm_call(system, prompt, event_bus=event_bus, agent_name="teacher")
+    return {"action": "teach", "content": result, "_llm_calls": 1, "_streamed": event_bus is not None}
 
 
 async def tool_real_world_scenario(*, session, learner, concept_id: str = "",
@@ -206,5 +210,6 @@ Application domain: {domain or 'web development'}
 Already-used contexts (avoid these): {used_contexts}
 Learner experience: {learner.experience_level}"""
 
-    result = await llm_client.generate(prompt, system=system)
-    return {"action": "practice", "content": result, "_llm_calls": 1}
+    event_bus = getattr(session, '_event_bus', None)
+    result = await streaming_llm_call(system, prompt, event_bus=event_bus, agent_name="examiner")
+    return {"action": "practice", "content": result, "_llm_calls": 1, "_streamed": event_bus is not None}

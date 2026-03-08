@@ -2,11 +2,11 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # LLM
-    gemini_api_key: str = ""
-    groq_api_key: str = ""  # legacy, kept for backward compat
-    llm_provider: str = "gemini"  # "gemini" or "groq"
-    llm_model: str = "gemini-2.0-flash"
+    # AWS
+    aws_region: str = "us-east-1"
+    aws_bedrock_model_id: str = "deepseek.v3.2"
+    aws_s3_data_bucket: str = ""
+    aws_jwt_secret_arn: str = ""
 
     # Database
     database_url: str = "sqlite:///masteryai.db"
@@ -29,7 +29,7 @@ class Settings(BaseSettings):
 
     # LLM Client
     retry_delays: list[int] = [1, 2, 4]
-    call_timeout: int = 30
+    call_timeout: int = 60
     cache_max: int = 1000
     llm_temperature: float = 0.7
     llm_max_tokens: int = 4096

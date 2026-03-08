@@ -1,19 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { LEARNING_SUGGESTIONS, PLACEHOLDERS, TIMING, APP_NAME, APP_DISCLAIMER } from "@/lib/constants";
 
 interface WelcomeScreenProps {
   onStartSession: (topic: string) => void;
   loading: boolean;
   userName?: string;
 }
-
-const SUGGESTIONS = [
-  { label: "Learn Python", desc: "Start from the basics" },
-  { label: "Understand recursion", desc: "With visual examples" },
-  { label: "Data structures 101", desc: "Arrays, stacks, trees" },
-  { label: "Learn JavaScript", desc: "Modern ES6+ syntax" },
-];
 
 export default function WelcomeScreen({ onStartSession, loading, userName }: WelcomeScreenProps) {
   const [input, setInput] = useState("");
@@ -23,7 +17,7 @@ export default function WelcomeScreen({ onStartSession, loading, userName }: Wel
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 200) + "px";
+    el.style.height = Math.min(el.scrollHeight, TIMING.TEXTAREA_MAX_HEIGHT) + "px";
   }, [input]);
 
   function handleSubmit() {
@@ -36,17 +30,15 @@ export default function WelcomeScreen({ onStartSession, loading, userName }: Wel
 
   return (
     <div className="flex flex-col items-center justify-center h-full px-4">
-      {/* Title */}
-      <h1 className="text-3xl md:text-4xl font-semibold text-[#ececec] mb-2">
-        MasteryAI
+      <h1 className="text-3xl md:text-4xl font-semibold text-foreground mb-2">
+        {APP_NAME}
       </h1>
       <p className="text-zinc-500 mb-10">
         {userName ? `Hi ${userName}! ` : ""}What do you want to learn today?
       </p>
 
-      {/* Input */}
-      <div className="w-full max-w-[768px]">
-        <div className="relative bg-[#2f2f2f] rounded-2xl border border-white/10
+      <div className="w-full max-w-chat">
+        <div className="relative bg-input-bg rounded-2xl border border-white/10
                         focus-within:border-white/20 transition-colors">
           <textarea
             ref={textareaRef}
@@ -58,21 +50,21 @@ export default function WelcomeScreen({ onStartSession, loading, userName }: Wel
                 handleSubmit();
               }
             }}
-            placeholder="Message MasteryAI..."
+            placeholder={PLACEHOLDERS.DEFAULT_INPUT}
             rows={1}
             disabled={loading}
             autoFocus
             className="w-full bg-transparent px-4 py-3.5 pr-12
-                       text-[15px] text-[#ececec] placeholder-zinc-500
+                       text-[15px] text-foreground placeholder-zinc-500
                        focus:outline-none resize-none
                        disabled:opacity-50 overflow-y-auto"
-            style={{ maxHeight: 200 }}
+            style={{ maxHeight: TIMING.TEXTAREA_MAX_HEIGHT }}
           />
           <button
             onClick={handleSubmit}
             disabled={loading || !input.trim()}
             className="absolute right-2 bottom-2.5 p-2 rounded-lg
-                       bg-[#ececec] text-[#212121]
+                       bg-foreground text-background
                        hover:bg-white transition-colors
                        disabled:opacity-30 disabled:cursor-not-allowed"
           >
@@ -88,17 +80,16 @@ export default function WelcomeScreen({ onStartSession, loading, userName }: Wel
           </p>
         )}
 
-        {/* Suggestion chips */}
         {!loading && (
           <div className="grid grid-cols-2 gap-2 mt-4">
-            {SUGGESTIONS.map((s) => (
+            {LEARNING_SUGGESTIONS.map((s) => (
               <button
                 key={s.label}
                 onClick={() => onStartSession(s.label)}
                 className="text-left px-4 py-3 rounded-xl border border-white/10 bg-transparent
                            hover:bg-white/5 transition-colors group"
               >
-                <span className="text-sm text-[#ececec] group-hover:text-white">{s.label}</span>
+                <span className="text-sm text-foreground group-hover:text-white">{s.label}</span>
                 <span className="block text-xs text-zinc-500 mt-0.5">{s.desc}</span>
               </button>
             ))}
@@ -106,7 +97,7 @@ export default function WelcomeScreen({ onStartSession, loading, userName }: Wel
         )}
 
         <p className="text-xs text-zinc-500 text-center mt-4">
-          MasteryAI can make mistakes. Verify important information.
+          {APP_DISCLAIMER}
         </p>
       </div>
     </div>

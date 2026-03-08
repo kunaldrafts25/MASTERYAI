@@ -1,93 +1,37 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, Suspense } from "react";
+import { useEffect, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { streamStartSession, streamRespond, StreamHandlers } from "@/lib/sse";
+import { streamStartSession, streamRespond } from "@/lib/sse";
 import { getLearnerSessions } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useSessionState } from "@/lib/hooks/useSessionState";
+import { useStreaming } from "@/lib/hooks/useStreaming";
 import ChatSidebar, { SessionSummary } from "@/components/ChatSidebar";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 import WelcomeScreen from "@/components/WelcomeScreen";
-
-// ── Types ──────────────────────────────────────────────────────────────
-
-interface Message {
-  id: string;
-  role: "professor" | "learner" | "system";
-  content: string;
-  action?: string;
-}
-
-interface ConceptInfo {
-  id: string;
-  name: string;
-  domain?: string;
-}
-
-interface CalibrationData {
-  self_assessment: number;
-  actual_score: number;
-  gap: number;
-}
-
-// ── Constants ──────────────────────────────────────────────────────────
-
-const TOOL_LABELS: Record<string, string> = {
-  teach: "Preparing lesson...",
-  generate_test: "Creating transfer test...",
-  evaluate_response: "Evaluating your answer...",
-  generate_practice: "Generating practice problems...",
-  ask_learner: "Preparing question...",
-  select_next_concept: "Selecting next concept...",
-  mark_mastered: "Updating mastery...",
-  check_career_impact: "Checking career impact...",
-  generate_concepts: "Building your learning path...",
-};
-
-// ── Helpers ────────────────────────────────────────────────────────────
-
-let msgCounter = 0;
-function nextId(): string {
-  return `msg-${++msgCounter}`;
-}
-
-// ── Main Component ─────────────────────────────────────────────────────
+import ThinkingIndicator from "@/components/ThinkingIndicator";
+import CalibrationBar from "@/components/CalibrationBar";
+import { useState } from "react";
+import { ACTIONS, RESPONSE_TYPES, CONFIDENCE, PLACEHOLDERS, ROUTES } from "@/lib/constants";
 
 function SessionContent() {
   const { auth, logout } = useAuth();
   const router = useRouter();
   const learnerId = auth.learnerId || "";
 
-  // Sidebar state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
 
-  // Session state
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-
-  // Input state
-  const [input, setInput] = useState("");
-  const [confidence, setConfidence] = useState(5);
-  const [currentAction, setCurrentAction] = useState("");
-  const [concept, setConcept] = useState<ConceptInfo | null>(null);
-  const [calibration, setCalibration] = useState<CalibrationData | null>(null);
-
-  // Streaming state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [thinkingAgent, setThinkingAgent] = useState("");
-  const [activeTool, setActiveTool] = useState("");
-  const [streamingText, setStreamingText] = useState("");
+  const session = useSessionState();
+  const streaming = useStreaming(session.handleActionResponse, session.setError);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // ── Effects ──────────────────────────────────────────────────────────
-
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingText, thinkingAgent]);
+  }, [session.messages, streaming.streamingText, streaming.thinkingAgent]);
 
   useEffect(() => {
     if (!learnerId) return;
@@ -96,332 +40,101 @@ function SessionContent() {
       .catch(() => {});
   }, [learnerId]);
 
-  // ── Message helpers ──────────────────────────────────────────────────
-
-  function addMessage(role: Message["role"], content: string | any, action?: string) {
-    const text = typeof content === "string" ? content : JSON.stringify(content, null, 2);
-    setMessages((prev) => [...prev, { id: nextId(), role, content: text, action }]);
-  }
-
   function refreshSessions() {
     if (learnerId) {
-      getLearnerSessions(learnerId)
-        .then(setSessions)
-        .catch(() => {});
+      getLearnerSessions(learnerId).then(setSessions).catch(() => {});
     }
   }
 
-  // ── SSE Handlers ─────────────────────────────────────────────────────
-
-  const createHandlers = useCallback((): StreamHandlers => {
-    let textBuffer = "";
-
-    return {
-      onAcknowledged: () => {
-        setError("");
-      },
-      onAgentThinking: (agent: string) => {
-        setThinkingAgent(agent);
-      },
-      onThinkingComplete: () => {
-        setThinkingAgent("");
-      },
-      onTextChunk: (chunk: string, final: boolean) => {
-        textBuffer += chunk;
-        setStreamingText(textBuffer);
-        if (final) {
-          textBuffer = "";
-        }
-      },
-      onToolStart: (toolName: string, agent: string) => {
-        setActiveTool(toolName);
-        setThinkingAgent(agent);
-      },
-      onToolComplete: () => {
-        setActiveTool("");
-      },
-      onResult: (data: any) => {
-        setStreamingText("");
-        setThinkingAgent("");
-        setActiveTool("");
-        handleActionResponse(data);
-      },
-      onError: (message: string) => {
-        setError(message);
-        setLoading(false);
-        setThinkingAgent("");
-        setActiveTool("");
-        setStreamingText("");
-      },
-      onComplete: () => {
-        setLoading(false);
-        setThinkingAgent("");
-        setActiveTool("");
-      },
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Session management ───────────────────────────────────────────────
-
   async function startNewSession(topic?: string) {
-    setMessages([]);
-    setCurrentAction("");
-    setConcept(null);
-    setCalibration(null);
-    setError("");
-    setLoading(true);
-    setActiveSessionId(null);
+    session.resetSession();
+    streaming.setLoading(true);
 
     try {
       await streamStartSession(
         learnerId,
-        {
-          ...createHandlers(),
-          onResult: (data: any) => {
-            setStreamingText("");
-            setThinkingAgent("");
-            setActiveTool("");
-            if (data.session_id) {
-              setActiveSessionId(data.session_id);
-              refreshSessions();
-            }
-            handleActionResponse(data);
-          },
-        },
+        streaming.createHandlers((data) => {
+          if (data.session_id) {
+            session.setActiveSessionId(data.session_id);
+            refreshSessions();
+          }
+          session.handleActionResponse(data);
+        }),
         topic
       );
-    } catch (err: any) {
-      setError(err.message || "Failed to start session");
-      setLoading(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to start session";
+      session.setError(msg);
+      streaming.setLoading(false);
     }
   }
 
   function handleNewChat() {
-    setActiveSessionId(null);
-    setMessages([]);
-    setCurrentAction("");
-    setConcept(null);
-    setCalibration(null);
-    setError("");
-    setStreamingText("");
-    setInput("");
-  }
-
-  function handleSelectSession(sessionId: string) {
-    setActiveSessionId(sessionId);
+    session.resetSession();
+    streaming.resetStreaming();
   }
 
   function handleSignOut() {
     logout();
-    router.push("/login");
+    router.push(ROUTES.LOGIN);
   }
-
-  // ── Action Response Handler ──────────────────────────────────────────
-
-  function handleActionResponse(res: any) {
-    const action = res.action || "";
-    setCurrentAction(action);
-
-    if (res.concept) setConcept(res.concept);
-    if (res.calibration) setCalibration(res.calibration);
-
-    const lang = res.concept?.domain || res.next_concept?.domain || concept?.domain || "";
-
-    switch (action) {
-      case "teach":
-      case "decay_check": {
-        const content = res.content;
-        const text =
-          content?.explanation ||
-          content?.teaching_content ||
-          content?.message ||
-          (typeof content === "string" ? content : JSON.stringify(content, null, 2));
-        const codeAppend = content?.code_example
-          ? `\n\n\`\`\`${lang}\n${content.code_example}\n\`\`\``
-          : "";
-        addMessage("professor", text + codeAppend, action);
-        break;
-      }
-      case "practice": {
-        const problems = res.content?.problems;
-        const msg = res.content?.message || "Let's practice what we just covered.";
-        if (Array.isArray(problems) && problems.length > 0) {
-          const problemText = problems
-            .map((p: any, i: number) => {
-              const statement =
-                p.problem_statement || p.problem || p.question || (typeof p === "string" ? p : JSON.stringify(p));
-              const hints =
-                Array.isArray(p.hints) && p.hints.length > 0
-                  ? `\n\n**Hints:**\n${p.hints.map((h: string) => `- ${h}`).join("\n")}`
-                  : p.hint
-                  ? `\n\n*Hint: ${p.hint}*`
-                  : "";
-              return `### Problem ${i + 1}\n\n${statement}${hints}`;
-            })
-            .join("\n\n---\n\n");
-          addMessage("professor", msg + "\n\n" + problemText, action);
-        } else {
-          addMessage("professor", msg, action);
-        }
-        break;
-      }
-      case "self_assess": {
-        const msg = res.content?.message || "How confident do you feel about this concept?";
-        addMessage("system", msg, action);
-        break;
-      }
-      case "transfer_test": {
-        const test = res.content;
-        const prompt =
-          test?.problem_statement ||
-          test?.question ||
-          test?.message ||
-          (typeof test === "string" ? test : JSON.stringify(test, null, 2));
-        const context = test?.context_description ? `\n\n**Context:** ${test.context_description}` : "";
-        const starter = test?.starter_code ? `\n\n\`\`\`${lang}\n${test.starter_code}\n\`\`\`` : "";
-        addMessage("professor", prompt + context + starter, action);
-        break;
-      }
-      case "mastered_and_advance": {
-        const evalData = res.evaluation;
-        const score = evalData?.total_score ?? "N/A";
-        addMessage(
-          "system",
-          `Concept mastered! Score: ${typeof score === "number" ? (score * 100).toFixed(0) : score}%`,
-          action
-        );
-        if (res.calibration) {
-          addMessage(
-            "system",
-            `Calibration \u2014 Confidence: ${(res.calibration.self_assessment * 100).toFixed(0)}% | Actual: ${(
-              res.calibration.actual_score * 100
-            ).toFixed(0)}% | Gap: ${(res.calibration.gap * 100).toFixed(0)}%`
-          );
-        }
-        if (res.next_concept) {
-          setConcept(res.next_concept);
-          addMessage("system", `Moving on to: **${res.next_concept.name || res.next_concept.id}**`);
-        }
-        if (res.next_content) {
-          const text =
-            res.next_content.explanation ||
-            res.next_content.teaching_content ||
-            res.next_content.message ||
-            JSON.stringify(res.next_content, null, 2);
-          const codeAppend = res.next_content.code_example
-            ? `\n\n\`\`\`${lang}\n${res.next_content.code_example}\n\`\`\``
-            : "";
-          addMessage("professor", text + codeAppend, "teach");
-          setCurrentAction("teach");
-        }
-        break;
-      }
-      case "mastered_all_done": {
-        addMessage("system", "You've mastered all available concepts!", action);
-        if (res.calibration) {
-          addMessage(
-            "system",
-            `Final calibration \u2014 Confidence: ${(res.calibration.self_assessment * 100).toFixed(0)}% | Actual: ${(
-              res.calibration.actual_score * 100
-            ).toFixed(0)}%`
-          );
-        }
-        break;
-      }
-      case "retest": {
-        addMessage(
-          "system",
-          `Partial mastery (${((res.evaluation?.total_score || 0) * 100).toFixed(0)}%). Let's try a different approach.`,
-          action
-        );
-        const test = res.content;
-        if (test) {
-          const prompt =
-            test.problem_statement || test.question || (typeof test === "string" ? test : JSON.stringify(test, null, 2));
-          const starter = test.starter_code ? `\n\n\`\`\`${lang}\n${test.starter_code}\n\`\`\`` : "";
-          addMessage("professor", prompt + starter, "transfer_test");
-        }
-        setCurrentAction("transfer_test");
-        break;
-      }
-      case "reteach": {
-        const evalScore = ((res.evaluation?.total_score || 0) * 100).toFixed(0);
-        addMessage("system", `Score: ${evalScore}%. Let's revisit this concept with a different approach.`, action);
-        if (res.misconceptions_detected?.length) {
-          addMessage("system", `Areas to improve: ${res.misconceptions_detected.join(", ")}`);
-        }
-        const content = res.content;
-        const text =
-          content?.explanation ||
-          content?.teaching_content ||
-          content?.message ||
-          (typeof content === "string" ? content : JSON.stringify(content, null, 2));
-        const codeAppend = content?.code_example
-          ? `\n\n\`\`\`${lang}\n${content.code_example}\n\`\`\``
-          : "";
-        addMessage("professor", text + codeAppend, "teach");
-        setCurrentAction("teach");
-        break;
-      }
-      case "complete": {
-        addMessage("system", res.content?.message || "Session complete!", action);
-        break;
-      }
-      default: {
-        if (res.content?.message) {
-          addMessage("system", res.content.message, action);
-        }
-      }
-    }
-  }
-
-  // ── Submit Handler ───────────────────────────────────────────────────
 
   async function handleSubmit() {
-    if (loading || !activeSessionId) return;
+    if (streaming.loading || !session.activeSessionId) return;
 
-    if (currentAction === "self_assess") {
-      addMessage("learner", `Confidence: ${confidence}/10`);
-      setLoading(true);
+    if (session.currentAction === ACTIONS.SELF_ASSESS) {
+      session.addMessage("learner", `Confidence: ${session.confidence}/${CONFIDENCE.MAX}`);
+      streaming.setLoading(true);
       try {
         await streamRespond(
-          activeSessionId,
-          { response_type: "self_assessment", content: "", confidence },
-          createHandlers()
+          session.activeSessionId,
+          { response_type: RESPONSE_TYPES.SELF_ASSESSMENT, content: "", confidence: session.confidence },
+          streaming.createHandlers()
         );
-      } catch (err: any) {
-        setError(err.message);
-        setLoading(false);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Submit failed";
+        session.setError(msg);
+        streaming.setLoading(false);
       }
       return;
     }
 
-    const text = input.trim();
+    const text = session.input.trim();
     if (!text) return;
 
-    addMessage("learner", text);
-    setInput("");
-    setLoading(true);
+    // Determine if this is a learning answer or casual chat
+    const learningPhases: string[] = [
+      ACTIONS.TEACH, ACTIONS.PRACTICE, ACTIONS.TRANSFER_TEST,
+      ACTIONS.RETEACH, ACTIONS.RETEST, ACTIONS.DECAY_CHECK,
+    ];
+    const responseType = learningPhases.includes(session.currentAction)
+      ? RESPONSE_TYPES.ANSWER
+      : RESPONSE_TYPES.CHAT;
+
+    session.addMessage("learner", text);
+    session.setInput("");
+    streaming.setLoading(true);
     try {
-      await streamRespond(activeSessionId, { response_type: "answer", content: text }, createHandlers());
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
+      await streamRespond(
+        session.activeSessionId,
+        { response_type: responseType, content: text },
+        streaming.createHandlers()
+      );
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Submit failed";
+      session.setError(msg);
+      streaming.setLoading(false);
     }
   }
 
-  // ── Render ───────────────────────────────────────────────────────────
-
-  const isProcessing = loading || !!thinkingAgent;
-  const isSelfAssess = currentAction === "self_assess";
+  const isSelfAssess = session.currentAction === ACTIONS.SELF_ASSESS;
 
   if (!learnerId) {
     return (
-      <div className="h-screen flex items-center justify-center bg-[#212121]">
+      <div className="h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-zinc-400 mb-4">No learner found.</p>
-          <a href="/login" className="text-white underline hover:text-zinc-300">
+          <a href={ROUTES.LOGIN} className="text-white underline hover:text-zinc-300">
             Sign in to start learning
           </a>
         </div>
@@ -430,35 +143,30 @@ function SessionContent() {
   }
 
   return (
-    <div className="flex h-screen bg-[#212121]">
-      {/* Sidebar */}
+    <div className="flex h-screen bg-background">
       <ChatSidebar
         sessions={sessions}
-        activeSessionId={activeSessionId}
+        activeSessionId={session.activeSessionId}
         onNewChat={handleNewChat}
-        onSelectSession={handleSelectSession}
+        onSelectSession={session.setActiveSessionId}
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         userName={auth.name || ""}
         onSignOut={handleSignOut}
       />
 
-      {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {activeSessionId === null ? (
-          /* Welcome screen */
+        {session.activeSessionId === null ? (
           <WelcomeScreen
             onStartSession={startNewSession}
-            loading={loading}
+            loading={streaming.loading}
             userName={auth.name || ""}
           />
         ) : (
-          /* Active chat */
           <>
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto scrollbar-thin">
               <div className="py-4">
-                {messages.map((msg) => (
+                {session.messages.map((msg) => (
                   <ChatMessage
                     key={msg.id}
                     role={msg.role}
@@ -467,76 +175,49 @@ function SessionContent() {
                   />
                 ))}
 
-                {/* Streaming preview */}
-                {streamingText && (
-                  <ChatMessage role="professor" content={streamingText} streaming />
+                {streaming.streamingText && (
+                  <ChatMessage
+                    role="professor"
+                    content={streaming.streamingText}
+                    streaming
+                  />
                 )}
 
-                {/* Thinking indicator */}
-                {isProcessing && !streamingText && (
-                  <div className="py-4">
-                    <div className="flex gap-4 max-w-chat mx-auto px-4">
-                      <div className="w-7 h-7 rounded-full bg-[#10a37f] flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <span className="text-white text-xs font-bold">P</span>
-                      </div>
-                      <div className="flex items-center gap-3 py-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                          <span className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-                        </div>
-                        {activeTool ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 text-zinc-400 border border-white/10">
-                            {TOOL_LABELS[activeTool] || activeTool}
-                          </span>
-                        ) : thinkingAgent ? (
-                          <span className="text-xs text-zinc-500">Thinking...</span>
-                        ) : null}
-                      </div>
-                    </div>
-                  </div>
+                {streaming.isProcessing && !streaming.streamingText && (
+                  <ThinkingIndicator
+                    activeTool={streaming.activeTool}
+                    thinkingAgent={streaming.thinkingAgent}
+                  />
                 )}
 
                 <div ref={chatEndRef} />
               </div>
             </div>
 
-            {/* Calibration bar */}
-            {calibration && (
-              <div className="max-w-chat mx-auto w-full px-4 py-1.5 flex gap-6 text-xs">
-                <span className="text-zinc-500">
-                  Confidence: <span className="text-zinc-300">{(calibration.self_assessment * 100).toFixed(0)}%</span>
-                </span>
-                <span className="text-zinc-500">
-                  Actual: <span className="text-zinc-300">{(calibration.actual_score * 100).toFixed(0)}%</span>
-                </span>
-                <span className={Math.abs(calibration.gap) > 0.2 ? "text-red-400" : "text-green-400"}>
-                  Gap: {(calibration.gap * 100).toFixed(0)}%
-                </span>
-              </div>
+            {session.calibration && (
+              <CalibrationBar calibration={session.calibration} />
             )}
 
-            {/* Error display */}
-            {error && (
+            {session.error && (
               <div className="max-w-chat mx-auto w-full px-4">
-                <p className="text-red-400 text-xs py-1">{error}</p>
+                <p className="text-red-400 text-xs py-1">{session.error}</p>
               </div>
             )}
 
-            {/* Input area */}
             <ChatInput
-              value={input}
-              onChange={setInput}
+              value={session.input}
+              onChange={session.setInput}
               onSubmit={handleSubmit}
-              disabled={isProcessing}
+              disabled={streaming.isProcessing}
               placeholder={
-                currentAction === "practice" || currentAction === "transfer_test"
-                  ? "Type your answer..."
-                  : "Message MasteryAI..."
+                session.currentAction === ACTIONS.PRACTICE ||
+                session.currentAction === ACTIONS.TRANSFER_TEST
+                  ? PLACEHOLDERS.ANSWER_INPUT
+                  : PLACEHOLDERS.DEFAULT_INPUT
               }
               isSelfAssess={isSelfAssess}
-              confidence={confidence}
-              onConfidenceChange={setConfidence}
+              confidence={session.confidence}
+              onConfidenceChange={session.setConfidence}
             />
           </>
         )}
@@ -549,7 +230,7 @@ export default function SessionPage() {
   return (
     <Suspense
       fallback={
-        <div className="h-screen flex items-center justify-center bg-[#212121]">
+        <div className="h-screen flex items-center justify-center bg-background">
           <div className="text-zinc-500 animate-pulse">Loading...</div>
         </div>
       }

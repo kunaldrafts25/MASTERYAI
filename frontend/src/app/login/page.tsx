@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { loginUser } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import Link from "next/link";
+import { ROUTES } from "@/lib/constants";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,16 +22,17 @@ export default function LoginPage() {
     try {
       const res = await loginUser({ email, password });
       login(res.token, res.user_id, res.learner_id, res.name);
-      router.push("/session");
-    } catch (err: any) {
-      setError(err.message?.includes("401") ? "Invalid email or password" : "Login failed");
+      router.push(ROUTES.SESSION);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "";
+      setError(message.includes("401") ? "Invalid email or password" : "Login failed");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#212121]">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md p-8">
         <h1 className="text-3xl font-bold text-white mb-2 text-center">Welcome Back</h1>
         <p className="text-zinc-400 text-center mb-8">Sign in to continue learning</p>
@@ -49,7 +51,7 @@ export default function LoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-[#2f2f2f] border border-white/10 rounded-lg text-white focus:border-white/30 focus:outline-none transition-colors"
+              className="w-full px-4 py-3 bg-input-bg border border-white/10 rounded-lg text-white focus:border-white/30 focus:outline-none transition-colors"
               placeholder="you@example.com"
             />
           </div>
@@ -60,7 +62,7 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-3 bg-[#2f2f2f] border border-white/10 rounded-lg text-white focus:border-white/30 focus:outline-none transition-colors"
+              className="w-full px-4 py-3 bg-input-bg border border-white/10 rounded-lg text-white focus:border-white/30 focus:outline-none transition-colors"
               placeholder="••••••••"
             />
           </div>
@@ -75,7 +77,7 @@ export default function LoginPage() {
 
         <p className="text-zinc-500 text-sm text-center mt-6">
           Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-white hover:underline">
+          <Link href={ROUTES.REGISTER} className="text-white hover:underline">
             Sign up
           </Link>
         </p>

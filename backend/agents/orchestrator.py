@@ -6,7 +6,7 @@ from backend.agents.base import BaseAgent
 from backend.agents.examiner import examiner_agent
 from backend.agents.teacher import teacher_agent
 from backend.agents.curriculum import curriculum_agent
-from backend.agents.career_mapper import career_mapper_agent
+# career_mapper merged into curriculum_agent
 from backend.agents.rl_engine import get_rl_engine, REWARD_MASTERY, REWARD_TEST_PASS_MULT, REWARD_TEST_FAIL, REWARD_MISCONCEPTION, REWARD_RESOLVED, REWARD_STEP
 from backend.agents.review_scheduler import review_scheduler
 from backend.agents.motivation import motivation_agent
@@ -324,6 +324,7 @@ class OrchestratorAgent(BaseAgent):
 
         context = self._build_context(session, learner, trigger, user_content, deliberation)
         final_result = None
+        was_streamed = False
         llm_calls = 0
 
         # Store event_bus on session so tool handlers can access it
@@ -367,6 +368,7 @@ class OrchestratorAgent(BaseAgent):
 
             result = await tool.handler(session=session, learner=learner, **tool_args)
             llm_calls += result.pop("_llm_calls", 0)
+            result_streamed = result.pop("_streamed", False)
 
             # Emit tool complete
             await self._emit(event_bus, StreamEvent.tool_complete(tool_name, agent=agent_label))
@@ -384,6 +386,7 @@ class OrchestratorAgent(BaseAgent):
 
             if respond or step == MAX_REACT_STEPS - 1 or llm_calls >= settings.max_llm_calls_per_loop:
                 final_result = result
+                was_streamed = result_streamed
                 break
 
             # add observation for next reasoning step
@@ -401,14 +404,15 @@ class OrchestratorAgent(BaseAgent):
 
         # Stream the text content as chunks if event_bus is active
         if event_bus is not None:
-            text = self._extract_text(formatted)
-            if text:
-                # Stream in chunks for a typing effect
-                chunk_size = 40
-                for i in range(0, len(text), chunk_size):
-                    chunk = text[i:i + chunk_size]
-                    is_final = (i + chunk_size) >= len(text)
-                    await self._emit(event_bus, StreamEvent.text_chunk(chunk, final=is_final))
+            if not was_streamed:
+                # Tool did not stream — send text in chunks for typing effect
+                text = self._extract_text(formatted)
+                if text:
+                    chunk_size = 40
+                    for i in range(0, len(text), chunk_size):
+                        chunk = text[i:i + chunk_size]
+                        is_final = (i + chunk_size) >= len(text)
+                        await self._emit(event_bus, StreamEvent.text_chunk(chunk, final=is_final))
 
             await self._emit(event_bus, StreamEvent.result(formatted))
             await self._emit(event_bus, StreamEvent.stream_complete())
@@ -469,8 +473,14 @@ class OrchestratorAgent(BaseAgent):
             except Exception:
                 pass
 
-        system = f"""You are the orchestrator of MasteryAI, an expert educator deciding the optimal next action.
-Your job is to reason about what the learner needs RIGHT NOW and choose the best action.
+        system = f"""You are the orchestrator of MasteryAI — a warm, encouraging AI tutor who genuinely cares about the learner's growth.
+
+PERSONALITY:
+- Talk like a knowledgeable friend, not a textbook. Be conversational, supportive, and real.
+- Celebrate wins ("Nice work!", "You nailed that!"). Normalize struggles ("This trips up a lot of people — let's break it down.").
+- Use the learner's name when you have it. Mirror their energy — if they're casual, be casual back.
+- For chat messages: respond naturally like a human would. If they say "hello", greet them warmly. If they ask a question, answer it helpfully. Don't redirect everything to the curriculum.
+- NEVER sound like a robot filling out a form. Every interaction should feel like a real conversation.
 
 AVAILABLE TOOLS:
 {tool_descs}
@@ -479,55 +489,30 @@ VALID CONCEPT IDs (use these exact IDs):
 {available_concepts[:20]}
 {rl_hint}
 
-PEDAGOGICAL FRAMEWORK:
-You are deciding what this learner needs RIGHT NOW. Consider:
+WHAT TO CONSIDER:
+1. What has the learner shown so far? Strong understanding → move forward. Confusion → slow down, try a different angle.
+2. How are they feeling? (Check EMOTIONAL STATE in context)
+   - frustrated → be patient, simplify, encourage
+   - bored → challenge them more, skip ahead
+   - excited/flow → keep the momentum going
+   - disengaged → suggest a break or try something different
+3. Would it help more to teach, test, talk, or try a new approach?
 
-1. EVIDENCE OF UNDERSTANDING:
-   - What has the learner demonstrated so far? (teaching responses, test scores, dialogue quality)
-   - Are there signs they already understand? (skip ahead) Or signs of confusion? (try different approach)
+ADVANCED TOOLS (use when they'd genuinely help):
+- teach_with_analogy, socratic_dialogue, composite_exercise, address_misconception, real_world_scenario, compose
 
-2. LEARNER SIGNALS & EMOTIONAL STATE:
-   - Engagement: Are they interested, struggling, bored, in flow?
-   - Response quality: Detailed thoughtful answers vs short uncertain ones?
-   - Confidence: Do they think they understand? Does evidence match?
-   - Emotional state: Check the EMOTIONAL STATE field in context. Adapt your tone accordingly.
-     * frustrated/confused → be patient, simplify, offer encouragement, consider switching approach
-     * bored → increase challenge, skip ahead, or switch to harder concept
-     * excited → maintain momentum, build on their enthusiasm
-     * disengaged → suggest a break or try a completely different angle
-     * flow → DON'T INTERRUPT — keep the current pace going
-
-3. PEDAGOGICAL JUDGMENT:
-   - Would testing now give useful signal, or is more scaffolding needed?
-   - Is the current teaching strategy working, or should you try a different one?
-   - Would switching to a related/prerequisite concept be more productive?
-   - Would dialogue (asking questions to probe understanding) be more effective than formal testing?
-
-ADVANCED ACTIONS (use when appropriate):
-- teach_with_analogy: When the learner has mastered a related concept, use it as a bridge
-- socratic_dialogue: When you want the learner to discover the concept through guided questions
-- composite_exercise: When multiple concepts should be practiced together
-- address_misconception: When a specific misconception needs targeted remediation
-- real_world_scenario: When the learner would benefit from seeing practical application
-- compose: When you need a custom multi-step action that no single tool provides
-
-GUIDELINES (not rigid rules):
-- Pick exactly ONE tool per step. Set respond_to_learner to true when you have content for the learner.
-- For session_start: if agent recommendations mention decayed concepts, use generate_test with that concept_id. Otherwise use teach with the recommended concept_id.
-- After teaching: If learner's response shows strong understanding, ASK THE LEARNER if they feel ready
-  for a test, or if they'd like to study the concept more deeply first. Use ask_learner with question_type
-  "readiness_check". NEVER auto-generate a test without the learner's consent.
-  If response shows confusion, consider reteaching with a different strategy or trying dialogue.
-- After practice: use ask_learner with question_type "self_assess".
+FLOW GUIDELINES:
+- Pick ONE tool per step. Set respond_to_learner to true when you have content for the learner.
+- session_start: if decayed concepts exist, test those. Otherwise teach the recommended concept.
+- After teaching: Ask if they feel ready to be tested (use ask_learner with "readiness_check"). Never force a test.
+- After practice: use ask_learner with "self_assess".
 - After self-assessment: use generate_test.
-- After evaluate_response: the tool handles mastery/retest/reteach decisions automatically.
-- For chat messages, use ask_learner with question_type "chat".
-- LEARNER AGENCY: The learner decides when they're ready to be tested. Recommend but never force.
-- If stuck for 2+ attempts: Consider switching to a prerequisite concept.
-- Trust the RL hints for difficulty and strategy preferences, but use your judgment.
+- After evaluate_response: mastery/retest/reteach is handled automatically.
+- For chat messages: use ask_learner with question_type "chat". Write a warm, helpful, conversational response.
+- LEARNER AGENCY: They decide when they're ready. Recommend, don't force.
 - You have {remaining} step(s) remaining.
 
-Return JSON only: {{"tool": "tool_name", "args": {{}}, "reasoning": "your step-by-step pedagogical thinking", "respond_to_learner": true}}"""
+Return JSON only: {{"tool": "tool_name", "args": {{}}, "reasoning": "your thinking", "respond_to_learner": true}}"""
 
         result = await self._llm_call(system, context)
         # validate
@@ -785,7 +770,10 @@ YOUR PAST REASONING:
         if not concept:
             return {"action": "error", "content": {"message": f"Concept {concept_id} not found"}}
 
-        teaching = await teacher_agent.teach(concept, learner, strategy=strategy or None)
+        event_bus = getattr(session, '_event_bus', None)
+        teaching = await teacher_agent.teach(
+            concept, learner, strategy=strategy or None, event_bus=event_bus
+        )
 
         session.current_concept = concept_id
         session.last_teaching_content = teaching
@@ -808,7 +796,7 @@ YOUR PAST REASONING:
         )
         session.events.append(event)
 
-        career_readiness = career_mapper_agent.calculate_all_readiness(learner)
+        career_readiness = curriculum_agent.calculate_all_readiness(learner)
 
         # Record professor message for emotional analysis
         teaching_text = teaching.get("teaching_content", "")[:200]
@@ -820,6 +808,7 @@ YOUR PAST REASONING:
             "content": teaching,
             "career_readiness": [r.model_dump() for r in career_readiness],
             "_llm_calls": 1,
+            "_streamed": event_bus is not None,
         }
 
     async def _tool_generate_test(self, *, session: Session, learner: LearnerState,
@@ -995,7 +984,7 @@ YOUR PAST REASONING:
         else:
             motivation_agent.celebrate_milestone(learner, "concept_mastered", session.session_id)
 
-        career_readiness = career_mapper_agent.calculate_all_readiness(learner)
+        career_readiness = curriculum_agent.calculate_all_readiness(learner)
 
         event = self._event(
             "CONCEPT_MASTERED", learner.learner_id, session.session_id,
@@ -1005,8 +994,8 @@ YOUR PAST REASONING:
         session.events.append(event)
 
         next_cid = curriculum_agent.select_next_concept(learner)
-        if next_cid:
-            next_c = knowledge_graph.get_concept(next_cid)
+        next_c = knowledge_graph.get_concept(next_cid) if next_cid else None
+        if next_cid and next_c:
             teaching = await teacher_agent.teach(next_c, learner)
             session.current_concept = next_cid
             session.current_state = "teaching"
@@ -1051,6 +1040,8 @@ YOUR PAST REASONING:
         await learner_store.update_learner(learner)
 
         concept = knowledge_graph.get_concept(concept_id)
+        if not concept:
+            return {"action": "error", "content": {"message": f"Concept {concept_id} not found for retest"}}
         engine = get_rl_engine(learner)
         retest_difficulty = engine.select_difficulty(learner, concept_id)
         new_test = await examiner_agent.generate_transfer_test(concept, learner, difficulty_tier=retest_difficulty)
@@ -1097,6 +1088,8 @@ YOUR PAST REASONING:
         await learner_store.update_learner(learner)
 
         concept = knowledge_graph.get_concept(concept_id)
+        if not concept:
+            return {"action": "error", "content": {"message": f"Concept {concept_id} not found for reteach"}}
         reteach = await teacher_agent.teach(concept, learner, strategy=new_strategy, misconceptions=misconception_ids)
         session.last_teaching_content = reteach
 
@@ -1172,7 +1165,7 @@ YOUR PAST REASONING:
         learner.learning_profile.total_concepts_mastered += 1
         await learner_store.update_learner(learner)
 
-        career_readiness = career_mapper_agent.calculate_all_readiness(learner)
+        career_readiness = curriculum_agent.calculate_all_readiness(learner)
         return {
             "action": "mastered",
             "content": {"concept_id": concept_id, "score": score},
@@ -1233,7 +1226,7 @@ YOUR PAST REASONING:
                                   concept_id: str = "", **_kw) -> dict:
         if not concept_id:
             concept_id = session.current_concept or ""
-        impacts = career_mapper_agent.get_career_impact(learner, concept_id)
+        impacts = curriculum_agent.get_career_impact(learner, concept_id)
 
         message_bus.post(AgentMessage(
             source_agent="career_mapper",

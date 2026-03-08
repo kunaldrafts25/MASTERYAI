@@ -56,8 +56,12 @@ class StreamEvent:
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), default=str)
 
-    def to_sse(self) -> str:
-        return f"data: {self.to_json()}\n\n"
+    def to_sse(self, event_id: int | None = None) -> str:
+        parts = []
+        if event_id is not None:
+            parts.append(f"id: {event_id}")
+        parts.append(f"data: {self.to_json()}")
+        return "\n".join(parts) + "\n\n"
 
     # ── Factory methods ──────────────────────────────────────────────────
 

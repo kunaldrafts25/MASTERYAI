@@ -6,8 +6,12 @@ import { AuthProvider } from "./providers";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "MasteryAI",
-  description: "Adaptive learning through mastery-based progression",
+  title: {
+    default: "MasteryAI",
+    template: "%s | MasteryAI",
+  },
+  description:
+    "AI-powered adaptive learning platform with transfer testing, multi-agent orchestration, and real-time career readiness tracking.",
 };
 
 export default function RootLayout({
