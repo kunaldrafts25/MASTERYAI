@@ -9,14 +9,14 @@ Teaches in one context. Tests in another. If you can transfer the idea, you've m
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=fff)](#)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi&logoColor=fff)](#)
 [![Next.js](https://img.shields.io/badge/Next.js-14-000?logo=next.js&logoColor=fff)](#)
-[![AWS Bedrock](https://img.shields.io/badge/AWS_Bedrock-Claude-FF9900?logo=amazonaws&logoColor=fff)](#)
+[![AWS Bedrock](https://img.shields.io/badge/AWS_Bedrock-LLM-FF9900?logo=amazonaws&logoColor=fff)](#)
 [![License](https://img.shields.io/badge/License-MIT-31C754)](#)
 
 </div>
 
 ---
 
-MasteryAI is a full-stack adaptive learning platform powered by 12 coordinated AI agents, a 5-layer reinforcement learning engine, SM-2 spaced repetition, agent deliberation, cross-session memory, and career intelligence. It doesn't just quiz you — it figures out how you learn best and adjusts everything in real-time.
+MasteryAI is a full-stack adaptive learning platform powered by 14 coordinated AI agents, a 5-layer reinforcement learning engine, SM-2 spaced repetition, agent deliberation, cross-session memory, and career intelligence. It doesn't just quiz you — it figures out how you learn best and adjusts everything in real-time.
 
 <br>
 
@@ -24,9 +24,11 @@ MasteryAI is a full-stack adaptive learning platform powered by 12 coordinated A
 
 **Transfer Testing** — Concepts are taught in one real-world context and tested in a completely different one. Memorization won't cut it. Understanding will.
 
-**12-Agent Orchestration** — A ReAct-style orchestrator coordinates 12 specialized agents — teacher, examiner, diagnostic, curriculum, motivation, analytics, review scheduler, RL engine, career mapper, memory, proactive intelligence, and a deliberation protocol that resolves agent conflicts.
+**14-Agent Orchestration** — A ReAct-style orchestrator coordinates 14 specialized agents — teacher, examiner, diagnostic, curriculum, motivation, analytics, review scheduler, RL engine, career mapper, memory, proactive intelligence, pedagogy engine, tool library, and a deliberation protocol that resolves agent conflicts.
 
 **5-Layer Reinforcement Learning** — Thompson Sampling, epsilon-greedy contextual bandits, and Q-Learning continuously learn which strategies, difficulty levels, actions, engagement profiles, and review schedules work best for each individual learner. No hardcoded rules.
+
+**Conversational AI Tutor** — Every interaction feels like talking to a knowledgeable friend, not a textbook. The system celebrates wins, normalizes struggles, and adapts its tone to your emotional state in real-time.
 
 **2-Tier Emotional Intelligence** — Tier 1 detects frustration, boredom, disengagement, and flow states with zero LLM calls. Tier 2 triggers deep LLM-powered emotional analysis only when signals warrant it.
 
@@ -38,6 +40,8 @@ MasteryAI is a full-stack adaptive learning platform powered by 12 coordinated A
 
 **Real-Time Streaming** — Every agent action streams to the frontend via SSE. You can watch the system think, decide, teach, and test — as it happens.
 
+**Model-Agnostic LLM Backend** — Runs on any model available through AWS Bedrock. Switch models by changing a single env variable — zero code changes.
+
 <br>
 
 ## Architecture
@@ -46,7 +50,7 @@ MasteryAI is a full-stack adaptive learning platform powered by 12 coordinated A
 ┌──────────────────────────────────────────────────────────────┐
 │                      Next.js Frontend                        │
 │    Session  ·  Knowledge Map  ·  Career  ·  Calibration      │
-│    Agent Log  ·  Welcome Screen  ·  Auth                     │
+│    Agent Log  ·  Welcome Screen  ·  Auth  ·  History         │
 │                    SSE Streaming (real-time)                  │
 └──────────────────────────┬───────────────────────────────────┘
                            │
@@ -68,7 +72,7 @@ MasteryAI is a full-stack adaptive learning platform powered by 12 coordinated A
 │                                                              │
 │   ┌──────────────┐  ┌──────────────┐  ┌────────────────┐    │
 │   │ AWS Bedrock  │  │  Knowledge   │  │ Learner Store  │    │
-│   │ Claude (LLM) │  │  Graph       │  │ (SQLite / PG)  │    │
+│   │  (any model) │  │  Graph       │  │ (SQLite / PG)  │    │
 │   └──────────────┘  └──────────────┘  └────────────────┘    │
 │                                                              │
 │   ┌──────────────┐  ┌──────────────┐  ┌────────────────┐    │
@@ -87,7 +91,7 @@ MasteryAI is a full-stack adaptive learning platform powered by 12 coordinated A
 | Agent | Role |
 |:------|:-----|
 | **Orchestrator** | ReAct loop — reasons about the learner's state and picks the right agent for each step |
-| **Teacher** | Generates explanations using RL-selected strategies (analogy, Socratic, worked examples, debugging, explain-back) |
+| **Teacher** | Generates conversational explanations using RL-selected strategies (analogy, Socratic, worked examples, debugging, explain-back) |
 | **Examiner** | Creates transfer tests — teaches in context A, tests in context B. Self-validates test quality before presenting. |
 | **Diagnostic** | Binary-search pre-assessment for experienced learners — probes existing knowledge boundary |
 | **Curriculum** | Selects the next concept via transfer-optimized topological sort, detects decayed mastery |
@@ -124,10 +128,11 @@ Hyperparameters auto-scale by experience: beginners use high exploration (α=0.2
 
 | Layer | Technologies |
 |:------|:-------------|
-| **Backend** | Python 3.11, FastAPI, Pydantic v2, AWS Bedrock (Claude), JWT + bcrypt |
+| **Backend** | Python 3.11, FastAPI, Pydantic v2, AWS Bedrock (any model), JWT + bcrypt |
 | **Frontend** | Next.js 14, React 18, TypeScript, Tailwind CSS, D3.js, Recharts, react-markdown |
 | **Data** | PostgreSQL 16, SQLite (dev), Redis 7 |
 | **Infra** | Docker Compose, Nginx |
+| **Testing** | pytest, pytest-asyncio, 112 tests (unit, integration, RL, live LLM) |
 
 <br>
 
@@ -161,8 +166,8 @@ masteryai/
 │       │   ├── login/          auth pages
 │       │   └── register/
 │       ├── components/   ChatInput, ChatMessage, ChatSidebar, KnowledgeGraph,
-│       │                 MarkdownContent, WelcomeScreen
-│       └── lib/          api, auth, sse utilities
+│       │                 MarkdownContent, WelcomeScreen, CalibrationBar
+│       └── lib/          api, auth, sse, hooks, constants
 ├── tests/             112 tests (unit, integration, RL, live LLM)
 ├── docs/              presentation, system flow, use cases
 ├── nginx/             reverse proxy config
@@ -275,7 +280,7 @@ GET   /api/v1/health                                   Status + concept/role cou
 | Variable | Default | Description |
 |:---------|:--------|:------------|
 | `AWS_REGION` | `us-east-1` | AWS region for Bedrock |
-| `AWS_BEDROCK_MODEL_ID` | `us.anthropic.claude-3-5-haiku-20241022-v1:0` | Bedrock model ID |
+| `AWS_BEDROCK_MODEL_ID` | — | Any Bedrock model ID (Claude, Llama, Mistral, etc.) |
 | `AWS_ACCESS_KEY_ID` | — | AWS credentials (or use `aws configure`) |
 | `AWS_SECRET_ACCESS_KEY` | — | AWS credentials (or use `aws configure`) |
 | `DATABASE_URL` | `sqlite:///masteryai.db` | Database connection string |
@@ -286,6 +291,7 @@ GET   /api/v1/health                                   Status + concept/role cou
 | `LLM_TEMPERATURE` | `0.7` | LLM temperature |
 | `LLM_MAX_TOKENS` | `4096` | Max output tokens per LLM call |
 | `MAX_REACT_STEPS` | `5` | Max orchestrator reasoning steps |
+| `CALL_TIMEOUT` | `60` | LLM call timeout in seconds |
 | `CACHE_MAX` | `1000` | In-memory LRU cache size |
 
 <br>
@@ -315,15 +321,16 @@ python -m pytest tests/test_live.py -q   # live LLM via Bedrock (7 tests)
 4.  Curriculum agent finalizes selection via RL-optimized topological sort
 5.  Memory agent recalls relevant past context ("last time you struggled with...")
 6.  RL engine picks the best teaching strategy via Thompson Sampling
-7.  Teacher explains the concept using the selected strategy
+7.  Teacher explains the concept conversationally using the selected strategy
 8.  Motivation agent monitors emotional state (frustration, boredom, flow)
-9.  Examiner creates a transfer test in a different context (self-validated)
-10. Learner responds → orchestrator evaluates understanding
-11. All 5 RL layers update: strategy, difficulty, action, engagement, scheduler
-12. SM-2 scheduler queues the concept for spaced review
-13. Memory agent records session summary + teaching reflections in journal
-14. Career mapper recalculates readiness scores across all target roles
-15. Loop continues — every step adapts based on RL signals
+9.  Learner chats naturally — the system responds like a knowledgeable friend
+10. When ready, examiner creates a transfer test in a different context
+11. Learner responds → orchestrator evaluates understanding
+12. All 5 RL layers update: strategy, difficulty, action, engagement, scheduler
+13. SM-2 scheduler queues the concept for spaced review
+14. Memory agent records session summary + teaching reflections in journal
+15. Career mapper recalculates readiness scores across all target roles
+16. Loop continues — every step adapts based on RL signals
 ```
 
 Everything streams in real-time via SSE.
