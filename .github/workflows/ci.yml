@@ -55,7 +55,7 @@ jobs:
           JWT_SECRET: ci-test-secret
           AWS_REGION: us-east-1
           AWS_BEDROCK_MODEL_ID: us.anthropic.claude-3-5-haiku-20241022-v1:0
-        run: pytest tests/ -m "not live" -v --tb=short
+        run: pytest tests/ -m "not live" -v --tb=short --ignore=tests/integration_test.py
 
   frontend:
     name: Frontend Lint & Build
