@@ -122,7 +122,8 @@ class CurriculumAgent(BaseAgent):
             if cs.misconceptions_resolved:
                 interval *= (1.0 - miscon_penalty)
 
-            days_since = (now - cs.last_validated).days
+            last_val = cs.last_validated.replace(tzinfo=None) if cs.last_validated.tzinfo else cs.last_validated
+            days_since = (now - last_val).days
             if days_since > interval:
                 decay_ratio = days_since / max(interval, 1)
                 decayed.append((cid, decay_ratio))
