@@ -6,6 +6,7 @@ import { getLearnerState, getReadiness } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { NavBar } from "../providers";
 import { scoreBarColor, ROUTES } from "@/lib/constants";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 interface SkillBreakdown {
   skill_name: string;
@@ -191,8 +192,10 @@ function CareerContent() {
 
 export default function CareerPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center text-zinc-500">Loading...</div>}>
-      <CareerContent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<div className="p-10 text-center text-zinc-500">Loading...</div>}>
+        <CareerContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

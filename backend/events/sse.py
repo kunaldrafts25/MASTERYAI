@@ -38,6 +38,16 @@ async def sse_keepalive_generator(
             except asyncio.TimeoutError:
                 yield ": keepalive\n\n"
 
+        # Drain remaining events after bus closes (race condition: bus closed
+        # between timeout and while-check, leaving events undelivered)
+        while not event_bus._queue.empty():
+            try:
+                event = event_bus._queue.get_nowait()
+                event_id += 1
+                yield event.to_sse(event_id=event_id)
+            except asyncio.QueueEmpty:
+                break
+
     except asyncio.CancelledError:
         logger.info("SSE keepalive generator cancelled")
         raise

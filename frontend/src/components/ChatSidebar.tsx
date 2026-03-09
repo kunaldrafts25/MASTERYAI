@@ -6,6 +6,7 @@ import { SIDEBAR_LINKS, SESSION_GROUPS } from "@/lib/constants";
 export interface SessionSummary {
   session_id: string;
   started_at: string;
+  title?: string | null;
   current_concept: string | null;
   concepts_covered: string[];
   concepts_mastered: string[];
@@ -125,7 +126,7 @@ export default function ChatSidebar({
                       }
                     `}
                   >
-                    {formatConceptName(s.current_concept || s.concepts_covered[0] || null)}
+                    {s.title || formatConceptName(s.current_concept || s.concepts_covered[0] || null)}
                   </button>
                 ))}
               </div>

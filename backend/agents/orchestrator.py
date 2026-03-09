@@ -1,7 +1,7 @@
 import json
 import logging
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.agents.base import BaseAgent
 from backend.agents.examiner import examiner_agent
 from backend.agents.teacher import teacher_agent
@@ -85,6 +85,12 @@ class OrchestratorAgent(BaseAgent):
             handler=self._tool_ask_learner,
         ))
         tool_registry.register(Tool(
+            name="generate_concepts",
+            description="Generate a learning path for a NEW topic the learner wants to study (e.g., 'machine learning', 'web development'). Creates concepts and returns the first one to teach. Use when the learner requests a topic not in the current concept list.",
+            parameters={"topic": "str - the topic the learner wants to learn"},
+            handler=self._tool_generate_concepts,
+        ))
+        tool_registry.register(Tool(
             name="check_career_impact",
             description="Check how mastering a concept would affect career readiness scores. Informational — does not change state.",
             parameters={"concept_id": "str"},
@@ -158,6 +164,7 @@ class OrchestratorAgent(BaseAgent):
     # ------------------------------------------------------------------
 
     def _resolve_topic_to_concept(self, topic: str) -> str | None:
+        import re
         topic_lower = topic.lower().strip()
         if not topic_lower:
             return None
@@ -168,9 +175,15 @@ class OrchestratorAgent(BaseAgent):
         for c in knowledge_graph.get_all_concepts():
             if topic_lower == c.name.lower():
                 return c.id
-        # 3. Substring match
+        # 3. Word-boundary match (avoids "csv" matching "closures_and_csv")
+        pattern = re.compile(r'\b' + re.escape(topic_lower) + r'\b')
         for c in knowledge_graph.get_all_concepts():
-            if topic_lower in c.name.lower() or topic_lower in c.id.lower():
+            name_normalized = c.name.lower().replace("_", " ").replace(".", " ")
+            if pattern.search(name_normalized):
+                return c.id
+        # 4. Starts-with match on name (less ambiguous than substring)
+        for c in knowledge_graph.get_all_concepts():
+            if c.name.lower().startswith(topic_lower):
                 return c.id
         return None
 
@@ -205,19 +218,71 @@ class OrchestratorAgent(BaseAgent):
             logger.error(f"Failed to generate concepts for topic '{topic}': {e}")
             return None
 
+    _CASUAL_PATTERNS = {
+        "hello", "hi", "hey", "yo", "sup", "hola", "howdy",
+        "good morning", "good afternoon", "good evening", "good night",
+        "what's up", "whats up", "wassup", "how are you",
+        "thanks", "thank you", "bye", "goodbye", "see you",
+        "ok", "okay", "sure", "yes", "no", "yep", "nope",
+    }
+
+    def _is_casual_message(self, text: str) -> bool:
+        """Detect casual greetings/small-talk that shouldn't trigger concept generation."""
+        cleaned = text.strip().lower().rstrip("!?.,:;")
+        if cleaned in self._CASUAL_PATTERNS:
+            return True
+        # Short messages (1-2 words) that aren't technical terms
+        words = cleaned.split()
+        if len(words) <= 2 and not any(c in cleaned for c in "{}[]()=<>+/\\"):
+            for pattern in self._CASUAL_PATTERNS:
+                if cleaned.startswith(pattern):
+                    return True
+        return False
+
+    @staticmethod
+    def _sanitize_title(text: str) -> str:
+        """Strip HTML tags and dangerous characters from a title."""
+        import re
+        text = re.sub(r'<[^>]+>', '', text)  # strip HTML tags
+        text = text.replace('\x00', '')       # strip null bytes
+        text = re.sub(r'[\x00-\x1f]', '', text)  # strip control chars
+        return text.strip()
+
+    def _generate_session_title(self, topic: str | None, concept_id: str | None) -> str:
+        """Generate a human-readable session title."""
+        if topic:
+            title = self._sanitize_title(topic)
+            if len(title) > 60:
+                title = title[:57] + "..."
+            return title.title() if len(title) < 30 else title
+        if concept_id:
+            concept = knowledge_graph.get_concept(concept_id)
+            if concept:
+                return self._sanitize_title(concept.name)
+            return concept_id.replace(".", " ").replace("_", " ").title()
+        return "New Session"
+
     async def start_session(self, learner: LearnerState, event_bus=None, topic: str | None = None) -> dict:
         self._ensure_tools()
         session = Session(learner_id=learner.learner_id)
         self.active_sessions[session.session_id] = session
 
+        # Emit session_id immediately so frontend can switch to chat view
+        title = self._generate_session_title(topic, None)
+        session.title = title
+        if event_bus:
+            await self._emit(event_bus, StreamEvent.chat_created(session.session_id, title=title))
+
         # If user specified a topic, resolve or generate concepts for it
-        if topic:
+        # Skip casual greetings — treat them as chat, not learning topics
+        if topic and not self._is_casual_message(topic):
             concept_id = self._resolve_topic_to_concept(topic)
             if not concept_id:
                 # Topic not in graph — dynamically generate a concept tree
                 concept_id = await self._generate_topic_concepts(topic, learner, event_bus)
             if concept_id:
                 session.current_concept = concept_id
+                session.title = self._generate_session_title(None, concept_id)
                 logger.info(f"User requested topic '{topic}' resolved to concept '{concept_id}'")
 
         # Load learner journal and recall relevant memory context
@@ -258,9 +323,10 @@ class OrchestratorAgent(BaseAgent):
 
         logger.info(f"handling {response_type} in state={session.current_state} concept={session.current_concept}")
 
-        # Record learner message for emotional analysis (Tier 2)
+        # Record learner message for emotional analysis (Tier 2) and session history
         if content:
             motivation_agent.record_message(session_id, "learner", content)
+            session.add_conversation_turn("learner", content)
 
         # store self-assessment before entering the loop
         if response_type == "self_assessment":
@@ -273,7 +339,7 @@ class OrchestratorAgent(BaseAgent):
                 learner.concept_states[cid].self_reported_confidence = conf
                 # Record self-assessment as understanding signal
                 learner.concept_states[cid].understanding_signals.append(UnderstandingSignal(
-                    timestamp=datetime.utcnow().isoformat(),
+                    timestamp=datetime.now(timezone.utc).isoformat(),
                     signal_type="self_assessment",
                     value=conf,
                     evidence=f"Self-reported confidence: {confidence or 5}/10",
@@ -288,11 +354,21 @@ class OrchestratorAgent(BaseAgent):
                     learner.concept_states[cid] = ConceptMastery(concept_id=cid)
                 quality = pedagogy_engine.estimate_response_quality(content)
                 learner.concept_states[cid].understanding_signals.append(UnderstandingSignal(
-                    timestamp=datetime.utcnow().isoformat(),
+                    timestamp=datetime.now(timezone.utc).isoformat(),
                     signal_type="teaching_response",
                     value=quality,
                     evidence=f"Response to teaching ({len(content)} chars, quality={quality:.2f})",
                 ))
+
+        # Detect programming language preference change
+        if content:
+            lang = self._detect_language_preference(content)
+            if lang:
+                logger.info(f"Language preference detected: {lang}")
+                session.preferred_language = lang
+                # Override response type so it's treated as a preference change, not an answer
+                if response_type == "answer":
+                    response_type = "chat"
 
         # Tier 2 emotional detection — updates session before ReAct loop sees it
         if content:
@@ -351,8 +427,18 @@ class OrchestratorAgent(BaseAgent):
                 session.reasoning_history = session.reasoning_history[-MAX_REASONING_HISTORY:]
 
             tool_name = decision.get("tool", "")
-            tool_args = decision.get("args", {})
+            tool_args = self._sanitize_tool_args(decision.get("args", {}))
             respond = decision.get("respond_to_learner", True)
+
+            # Hard guard: prevent re-teaching when we should be progressing
+            # Exception: allow re-teach when user changed language preference
+            is_language_change = "chat_message" in trigger and session.preferred_language
+            if session.current_state == "teaching" and trigger != "session_start" and not is_language_change:
+                if tool_name in ("teach", "generate_concepts"):
+                    logger.info(f"[guard] Overriding {tool_name} -> generate_practice (already teaching)")
+                    tool_name = "generate_practice"
+                    tool_args = {"concept_id": session.current_concept or ""}
+                    respond = True
 
             tool = tool_registry.get(tool_name)
             if not tool or not tool.handler:
@@ -366,9 +452,16 @@ class OrchestratorAgent(BaseAgent):
             agent_label = self._tool_agent_label(tool_name)
             await self._emit(event_bus, StreamEvent.tool_start(tool_name, agent=agent_label))
 
-            result = await tool.handler(session=session, learner=learner, **tool_args)
-            llm_calls += result.pop("_llm_calls", 0)
-            result_streamed = result.pop("_streamed", False)
+            try:
+                result = await tool.handler(session=session, learner=learner, **tool_args)
+                llm_calls += result.pop("_llm_calls", 0)
+                result_streamed = result.pop("_streamed", False)
+            except Exception as e:
+                logger.error(f"tool '{tool_name}' crashed: {e}", exc_info=True)
+                await self._emit(event_bus, StreamEvent.tool_complete(tool_name, agent=agent_label))
+                # Fall back rather than crashing the entire loop
+                final_result = await self._fallback(session, learner, trigger, user_content)
+                break
 
             # Emit tool complete
             await self._emit(event_bus, StreamEvent.tool_complete(tool_name, agent=agent_label))
@@ -384,7 +477,7 @@ class OrchestratorAgent(BaseAgent):
                     concept_name = c.name if c else session.current_concept
                 await self._emit(event_bus, StreamEvent.phase_change(action, concept=concept_name))
 
-            if respond or step == MAX_REACT_STEPS - 1 or llm_calls >= settings.max_llm_calls_per_loop:
+            if respond or result_streamed or step == MAX_REACT_STEPS - 1 or llm_calls >= settings.max_llm_calls_per_loop:
                 final_result = result
                 was_streamed = result_streamed
                 break
@@ -398,6 +491,7 @@ class OrchestratorAgent(BaseAgent):
 
         # persist agent messages for the session
         session.agent_messages = message_bus.serialize(session.session_id)
+        message_bus.clear_session(session.session_id)
         await learner_store.save_session(session)
 
         formatted = self._format_response(session, learner, final_result)
@@ -415,9 +509,67 @@ class OrchestratorAgent(BaseAgent):
                         await self._emit(event_bus, StreamEvent.text_chunk(chunk, final=is_final))
 
             await self._emit(event_bus, StreamEvent.result(formatted))
-            await self._emit(event_bus, StreamEvent.stream_complete())
+            # stream_complete is emitted by the route's finally block
 
         return formatted
+
+    @staticmethod
+    def _sanitize_tool_args(args) -> dict:
+        """Coerce LLM-returned tool args to safe Python types."""
+        if not isinstance(args, dict):
+            return {}
+        cleaned = {}
+        for k, v in args.items():
+            # Skip session/learner — injected by the loop
+            if k in ("session", "learner"):
+                continue
+            # Coerce stringified numbers
+            if isinstance(v, str):
+                if v.isdigit():
+                    v = int(v)
+                else:
+                    try:
+                        v = float(v)
+                    except ValueError:
+                        pass
+            # Coerce stringified lists
+            if isinstance(v, str) and v.startswith("["):
+                try:
+                    v = json.loads(v)
+                except (json.JSONDecodeError, ValueError):
+                    pass
+            cleaned[k] = v
+        return cleaned
+
+    @staticmethod
+    def _detect_language_preference(content: str) -> str | None:
+        """Detect if the user is requesting a specific programming language."""
+        import re
+        text = content.lower().strip()
+        # Map common aliases to canonical names
+        lang_map = {
+            "cpp": "C++", "c++": "C++", "c plus plus": "C++",
+            "python": "Python", "py": "Python",
+            "java": "Java", "javascript": "JavaScript", "js": "JavaScript",
+            "typescript": "TypeScript", "ts": "TypeScript",
+            "rust": "Rust", "go": "Go", "golang": "Go",
+            "c#": "C#", "csharp": "C#", "c sharp": "C#",
+            "ruby": "Ruby", "swift": "Swift", "kotlin": "Kotlin",
+            "php": "PHP", "r": "R", "scala": "Scala",
+        }
+        # Patterns: "in cpp", "use python", "i want cpp", "learn it in java", "switch to rust"
+        # Order matters: longer patterns first to avoid partial matches
+        pattern = r'(?:learn\s+(?:it\s+)?in|want\s+to\s+(?:learn\s+(?:it\s+)?)?in|switch\s+to|use|using|want|with|in)\s+(\w[\w#+]*)'
+        m = re.search(pattern, text)
+        if m:
+            lang_key = m.group(1).lower()
+            if lang_key in lang_map:
+                return lang_map[lang_key]
+        # Also match standalone: "cpp please", "python"
+        for key, canonical in lang_map.items():
+            if re.search(r'\b' + re.escape(key) + r'\b', text) and len(text.split()) <= 6:
+                return canonical
+        return None
 
     def _tool_agent_label(self, tool_name: str) -> str:
         return {
@@ -426,6 +578,7 @@ class OrchestratorAgent(BaseAgent):
             "evaluate_response": "examiner",
             "generate_practice": "examiner",
             "ask_learner": "orchestrator",
+            "generate_concepts": "orchestrator",
             "select_next_concept": "curriculum",
             "mark_mastered": "orchestrator",
             "check_career_impact": "career_mapper",
@@ -478,38 +631,43 @@ class OrchestratorAgent(BaseAgent):
 PERSONALITY:
 - Talk like a knowledgeable friend, not a textbook. Be conversational, supportive, and real.
 - Celebrate wins ("Nice work!", "You nailed that!"). Normalize struggles ("This trips up a lot of people — let's break it down.").
-- Use the learner's name when you have it. Mirror their energy — if they're casual, be casual back.
-- For chat messages: respond naturally like a human would. If they say "hello", greet them warmly. If they ask a question, answer it helpfully. Don't redirect everything to the curriculum.
+- The learner's name is in LEARNER PROFILE. Use it naturally. NEVER ask "What's your name?" — you already know it.
+- Mirror their energy — if they're casual, be casual back.
 - NEVER sound like a robot filling out a form. Every interaction should feel like a real conversation.
 
 AVAILABLE TOOLS:
 {tool_descs}
 
-VALID CONCEPT IDs (use these exact IDs):
+VALID CONCEPT IDs (use these exact IDs when a tool requires concept_id — do NOT pick one unprompted):
 {available_concepts[:20]}
 {rl_hint}
 
-WHAT TO CONSIDER:
-1. What has the learner shown so far? Strong understanding → move forward. Confusion → slow down, try a different angle.
-2. How are they feeling? (Check EMOTIONAL STATE in context)
-   - frustrated → be patient, simplify, encourage
-   - bored → challenge them more, skip ahead
-   - excited/flow → keep the momentum going
-   - disengaged → suggest a break or try something different
-3. Would it help more to teach, test, talk, or try a new approach?
+CRITICAL RULES — FOLLOW THESE STRICTLY:
+1. TOPIC REQUEST = generate_concepts IMMEDIATELY. If the learner mentions ANY topic they want to learn (e.g., "ai ml", "python", "web dev", "machine learning"), call generate_concepts with that topic as the argument RIGHT NOW. No clarifying questions. No asking for more detail. Just call generate_concepts.
+2. NEVER teach twice in a row. After you teach a concept, the NEXT action on user response MUST be generate_practice or ask_learner(self_assess) — NEVER teach again.
+3. STAY ON ONE CONCEPT. Once a concept is set (Current concept is not None), keep working on THAT concept until the learner masters it or explicitly asks for something else.
+4. TRUST THE LEARNER. If they say "I know X", use generate_test. If they say "test me", use generate_test.
+5. NEVER ask the same question twice. Check RECENT CONVERSATION.
+6. On session_start with NO concept: ONLY greet + ask what to learn. Do NOT suggest any topic.
+7. LANGUAGE PREFERENCE: If the learner says they want to learn in a specific programming language (e.g., "in cpp", "in python", "use java", "i want cpp"), this is NOT an answer — it is a preference change. Re-teach the CURRENT concept using that language. Call teach with the current concept_id. All code examples, practice problems, and tests must use the preferred language shown in SESSION STATE.
 
-ADVANCED TOOLS (use when they'd genuinely help):
-- teach_with_analogy, socratic_dialogue, composite_exercise, address_misconception, real_world_scenario, compose
+LEARNING FLOW (follow this order strictly):
+1. teach → 2. generate_practice → 3. ask_learner(self_assess) → 4. generate_test → 5. evaluate_response → 6. mark_mastered or reteach
 
-FLOW GUIDELINES:
+WHEN TO USE EACH TOOL:
+- UI state is "idle" + learner mentions a topic → generate_concepts
+- UI state is "idle" + no topic mentioned → ask_learner(chat) to ask what they want to learn
+- UI state is "teaching" + learner responds → generate_practice (NOT teach again)
+- UI state is "practicing" + learner responds → ask_learner(self_assess)
+- UI state is "self_assessing" + learner responds → generate_test
+- UI state is "testing" + learner responds → evaluate_response
+- Learner explicitly asks to change topic → generate_concepts with new topic
+- Learner says "test me" → generate_test
+
+IMPORTANT:
 - Pick ONE tool per step. Set respond_to_learner to true when you have content for the learner.
-- session_start: if decayed concepts exist, test those. Otherwise teach the recommended concept.
-- After teaching: Ask if they feel ready to be tested (use ask_learner with "readiness_check"). Never force a test.
-- After practice: use ask_learner with "self_assess".
-- After self-assessment: use generate_test.
-- After evaluate_response: mastery/retest/reteach is handled automatically.
-- For chat messages: use ask_learner with question_type "chat". Write a warm, helpful, conversational response.
-- LEARNER AGENCY: They decide when they're ready. Recommend, don't force.
+- If Current concept is set and UI state is "teaching", do NOT call teach. Call generate_practice instead.
+- For casual chat: respond briefly with ask_learner(chat), then guide back to learning.
 - You have {remaining} step(s) remaining.
 
 Return JSON only: {{"tool": "tool_name", "args": {{}}, "reasoning": "your thinking", "respond_to_learner": true}}"""
@@ -566,18 +724,26 @@ Return JSON only: {{"tool": "tool_name", "args": {{}}, "reasoning": "your thinki
         evidence = pedagogy_engine.build_evidence_summary(learner, session.current_concept)
         approach_hint = pedagogy_engine.suggest_approach(learner, session.current_concept)
 
+        recent_convo = motivation_agent.get_conversation_history(session.session_id)[-6:]
+        convo_lines = "\n".join(f"  {m['role']}: {m['content'][:150]}" for m in recent_convo) if recent_convo else "None"
+
         return f"""TRIGGER: {trigger}
 LEARNER INPUT: {user_content or '(none)'}
+
+RECENT CONVERSATION:
+{convo_lines}
 
 SESSION STATE:
 - Current concept: {concept.name + ' (' + session.current_concept + ')' if concept else session.current_concept or 'None'}
 - UI state: {session.current_state}
+- Preferred language: {session.preferred_language or 'not set (use Python by default)'}
 - Strategy: {session.current_strategy or 'None'}
 - Tests passed/failed: {session.tests_passed}/{session.tests_failed}
 - Concepts mastered this session: {session.concepts_mastered}
 - Self-assessment: {session.self_assessment}
 
 LEARNER PROFILE:
+- Name: {learner.name or 'Unknown'}
 - Experience: {learner.experience_level}
 - Mastered: {mastered[:10]}
 - Calibration trend: {learner.learning_profile.calibration_trend}
@@ -659,6 +825,7 @@ YOUR PAST REASONING:
     def _infer_state(self, tool_name: str) -> str:
         return {
             "teach": "teaching",
+            "generate_concepts": "teaching",
             "generate_test": "testing",
             "evaluate_response": "evaluating",
             "generate_practice": "practicing",
@@ -767,12 +934,17 @@ YOUR PAST REASONING:
             concept_id = session.current_concept or ""
         concept_id = self._resolve_concept_id(concept_id)
         concept = knowledge_graph.get_concept(concept_id)
+        # Fallback: if LLM fabricated a concept_id, use session's current concept
+        if not concept and session.current_concept:
+            concept_id = session.current_concept
+            concept = knowledge_graph.get_concept(concept_id)
         if not concept:
-            return {"action": "error", "content": {"message": f"Concept {concept_id} not found"}}
+            return {"action": "chat_response", "content": {"message": "I'm not sure which concept to teach. What topic would you like to learn?"}, "_llm_calls": 0}
 
         event_bus = getattr(session, '_event_bus', None)
         teaching = await teacher_agent.teach(
-            concept, learner, strategy=strategy or None, event_bus=event_bus
+            concept, learner, strategy=strategy or None, event_bus=event_bus,
+            preferred_language=session.preferred_language,
         )
 
         session.current_concept = concept_id
@@ -783,7 +955,7 @@ YOUR PAST REASONING:
 
         if concept_id not in learner.concept_states:
             learner.concept_states[concept_id] = ConceptMastery(
-                concept_id=concept_id, status="introduced", introduced_at=datetime.utcnow()
+                concept_id=concept_id, status="introduced", introduced_at=datetime.now(timezone.utc)
             )
         else:
             learner.concept_states[concept_id].status = "introduced"
@@ -794,14 +966,15 @@ YOUR PAST REASONING:
             {"concept": concept_id, "strategy": session.current_strategy},
             f"Teaching {concept.name} using {session.current_strategy}."
         )
-        session.events.append(event)
+        session.add_event(event)
 
         career_readiness = curriculum_agent.calculate_all_readiness(learner)
 
-        # Record professor message for emotional analysis
-        teaching_text = teaching.get("teaching_content", "")[:200]
+        # Record professor message for emotional analysis and session history
+        teaching_text = teaching.get("teaching_content", "") or teaching.get("explanation", "") or ""
         if teaching_text:
-            motivation_agent.record_message(session.session_id, "professor", teaching_text)
+            motivation_agent.record_message(session.session_id, "professor", teaching_text[:200])
+            session.add_conversation_turn("professor", teaching_text)
 
         return {
             "action": "teach",
@@ -817,8 +990,11 @@ YOUR PAST REASONING:
             concept_id = session.current_concept or ""
         concept_id = self._resolve_concept_id(concept_id)
         concept = knowledge_graph.get_concept(concept_id)
+        if not concept and session.current_concept:
+            concept_id = session.current_concept
+            concept = knowledge_graph.get_concept(concept_id)
         if not concept:
-            return {"action": "error", "content": {"message": f"Concept {concept_id} not found"}}
+            return {"action": "chat_response", "content": {"message": "I need to teach you a concept first before testing. What would you like to learn?"}, "_llm_calls": 0}
 
         # Adaptive difficulty: adjust based on learner's confidence
         adaptive_difficulty = pedagogy_engine.select_test_difficulty(learner, concept_id)
@@ -826,7 +1002,10 @@ YOUR PAST REASONING:
         if difficulty == 2:  # default value means no explicit override
             difficulty = adaptive_difficulty
 
-        test = await examiner_agent.generate_transfer_test(concept, learner, difficulty_tier=difficulty)
+        test = await examiner_agent.generate_transfer_test(
+            concept, learner, difficulty_tier=difficulty,
+            preferred_language=session.preferred_language,
+        )
         session.current_concept = concept_id
         session.last_test = test
 
@@ -835,7 +1014,7 @@ YOUR PAST REASONING:
             {"concept": concept_id, "context": test.get("context_description", "")},
             f"Transfer test generated for {concept.name}."
         )
-        session.events.append(event)
+        session.add_event(event)
 
         action = "decay_check" if "session_start" in (session.reasoning_history[-1] if session.reasoning_history else "") else "transfer_test"
 
@@ -878,7 +1057,7 @@ YOUR PAST REASONING:
 
         # Record test score as understanding signal
         cs.understanding_signals.append(UnderstandingSignal(
-            timestamp=datetime.utcnow().isoformat(),
+            timestamp=datetime.now(timezone.utc).isoformat(),
             signal_type="test_score",
             value=score,
             evidence=f"Transfer test score: {score:.2f} (threshold: ~0.7)",
@@ -967,8 +1146,8 @@ YOUR PAST REASONING:
     async def _handle_mastery(self, session, learner, cs, concept_id, score,
                               misconception_ids, evaluation, calibration):
         cs.status = "mastered"
-        cs.mastered_at = datetime.utcnow()
-        cs.last_validated = datetime.utcnow()
+        cs.mastered_at = datetime.now(timezone.utc)
+        cs.last_validated = datetime.now(timezone.utc)
         for mid in misconception_ids:
             if mid in cs.misconceptions_active:
                 cs.misconceptions_active.remove(mid)
@@ -991,7 +1170,7 @@ YOUR PAST REASONING:
             {"concept": concept_id, "score": score, "calibration": calibration},
             f"Mastered! Score {score:.2f}. Gap {calibration['gap']:.2f}."
         )
-        session.events.append(event)
+        session.add_event(event)
 
         next_cid = curriculum_agent.select_next_concept(learner)
         next_c = knowledge_graph.get_concept(next_cid) if next_cid else None
@@ -1005,7 +1184,7 @@ YOUR PAST REASONING:
                 session.concepts_covered.append(next_cid)
             if next_cid not in learner.concept_states:
                 learner.concept_states[next_cid] = ConceptMastery(
-                    concept_id=next_cid, status="introduced", introduced_at=datetime.utcnow()
+                    concept_id=next_cid, status="introduced", introduced_at=datetime.now(timezone.utc)
                 )
             await learner_store.update_learner(learner)
 
@@ -1052,7 +1231,7 @@ YOUR PAST REASONING:
             {"concept": concept_id, "score": score, "decision": "retest"},
             f"Partial ({score:.2f}). Retesting in different context."
         )
-        session.events.append(event)
+        session.add_event(event)
 
         return {
             "action": "retest",
@@ -1100,7 +1279,7 @@ YOUR PAST REASONING:
              "previous_strategy": prev_strategy, "new_strategy": new_strategy},
             f"Failed ({score:.2f}). Misconceptions: {misconception_ids}. Switching {prev_strategy} -> {new_strategy}."
         )
-        session.events.append(event)
+        session.add_event(event)
 
         return {
             "action": "reteach",
@@ -1128,14 +1307,16 @@ YOUR PAST REASONING:
         learner.concept_states[concept_id].status = "practicing"
         await learner_store.update_learner(learner)
 
-        practice = await examiner_agent.generate_practice(concept, learner)
+        practice = await examiner_agent.generate_practice(
+            concept, learner, preferred_language=session.preferred_language,
+        )
 
         event = self._event(
             "PRACTICE_STARTED", learner.learner_id, session.session_id,
             {"concept": concept_id},
             f"Practice problems for {concept.name}."
         )
-        session.events.append(event)
+        session.add_event(event)
 
         return {
             "action": "practice",
@@ -1151,6 +1332,21 @@ YOUR PAST REASONING:
         # automatically teach the next concept instead of requiring another reasoning step
         return await self._tool_teach(session=session, learner=learner, concept_id=concept_id)
 
+    async def _tool_generate_concepts(self, *, session: Session, learner: LearnerState,
+                                       topic: str = "", **_kw) -> dict:
+        """Generate concepts for a new topic mid-session and start teaching the first one."""
+        if not topic:
+            return {"action": "chat_response", "content": {"message": "What topic would you like to learn?"}, "_llm_calls": 0}
+
+        concept_id = self._resolve_topic_to_concept(topic)
+        if not concept_id:
+            concept_id = await self._generate_topic_concepts(topic, learner)
+        if not concept_id:
+            return {"action": "chat_response", "content": {"message": f"I couldn't generate concepts for '{topic}'. Could you be more specific?"}, "_llm_calls": 0}
+
+        session.current_concept = concept_id
+        return await self._tool_teach(session=session, learner=learner, concept_id=concept_id)
+
     async def _tool_mark_mastered(self, *, session: Session, learner: LearnerState,
                                   concept_id: str = "", score: float = 0.8, **_kw) -> dict:
         if not concept_id:
@@ -1158,8 +1354,8 @@ YOUR PAST REASONING:
         cs = learner.concept_states.get(concept_id)
         if cs:
             cs.status = "mastered"
-            cs.mastered_at = datetime.utcnow()
-            cs.last_validated = datetime.utcnow()
+            cs.mastered_at = datetime.now(timezone.utc)
+            cs.last_validated = datetime.now(timezone.utc)
             cs.mastery_score = score
         session.concepts_mastered.append(concept_id)
         learner.learning_profile.total_concepts_mastered += 1
@@ -1185,7 +1381,12 @@ YOUR PAST REASONING:
             {"question_type": question_type},
             f"Asking learner: {question[:60]}"
         )
-        session.events.append(event)
+        session.add_event(event)
+
+        # Record professor message for conversation context and session history
+        if question:
+            motivation_agent.record_message(session.session_id, "professor", question[:200])
+            session.add_conversation_turn("professor", question)
 
         # Map question types to actions
         action_map = {

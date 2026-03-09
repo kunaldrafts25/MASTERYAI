@@ -33,6 +33,7 @@ export function loadAuth(): AuthState {
 }
 
 export function saveAuth(token: string, userId: string, learnerId: string, name?: string) {
+  if (typeof window === "undefined") return;
   localStorage.setItem("token", token);
   localStorage.setItem("userId", userId);
   localStorage.setItem("learnerId", learnerId);
@@ -40,6 +41,7 @@ export function saveAuth(token: string, userId: string, learnerId: string, name?
 }
 
 export function clearAuth() {
+  if (typeof window === "undefined") return;
   localStorage.removeItem("token");
   localStorage.removeItem("userId");
   localStorage.removeItem("learnerId");

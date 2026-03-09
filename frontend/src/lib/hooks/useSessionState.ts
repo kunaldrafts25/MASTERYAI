@@ -235,9 +235,18 @@ export function useSessionState() {
           );
           break;
         }
+        case ACTIONS.CHAT_RESPONSE:
+        case "chat_response": {
+          const msg =
+            (res.content?.message as string) ||
+            (res.content?.explanation as string) ||
+            (typeof res.content === "string" ? res.content : "");
+          if (msg) addMessage("professor", msg, action);
+          break;
+        }
         default: {
           if (res.content?.message) {
-            addMessage("system", res.content.message as string, action);
+            addMessage("professor", res.content.message as string, action);
           }
         }
       }

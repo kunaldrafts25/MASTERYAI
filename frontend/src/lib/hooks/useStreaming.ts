@@ -19,12 +19,15 @@ export function useStreaming(onResult: (data: ActionResult) => void, onError: (m
   }, []);
 
   const createHandlers = useCallback(
-    (extraOnResult?: (data: ActionResult) => void): StreamHandlers => {
+    (extraOnResult?: (data: ActionResult) => void, extraOnChatCreated?: (sessionId: string, title: string) => void): StreamHandlers => {
       let textBuffer = "";
 
       return {
         onAcknowledged: () => {
           onError("");
+        },
+        onChatCreated: (sessionId: string, title: string) => {
+          extraOnChatCreated?.(sessionId, title);
         },
         onAgentThinking: (agent: string) => {
           setThinkingAgent(agent);
@@ -36,6 +39,8 @@ export function useStreaming(onResult: (data: ActionResult) => void, onError: (m
           textBuffer += chunk;
           setStreamingText(textBuffer);
           if (final) {
+            // Don't clear immediately — let onResult handle adding the permanent message.
+            // Just reset the buffer for potential next chunks.
             textBuffer = "";
           }
         },
@@ -64,9 +69,11 @@ export function useStreaming(onResult: (data: ActionResult) => void, onError: (m
           setStreamingText("");
         },
         onComplete: () => {
+          textBuffer = "";
           setLoading(false);
           setThinkingAgent("");
           setActiveTool("");
+          setStreamingText("");
         },
       };
     },

@@ -153,6 +153,7 @@ async def get_sessions(learner_id: str, user: dict = Depends(get_current_user)):
         {
             "session_id": s.session_id,
             "started_at": s.started_at.isoformat(),
+            "title": getattr(s, "title", "") or None,
             "current_concept": s.current_concept,
             "concepts_covered": s.concepts_covered,
             "concepts_mastered": s.concepts_mastered,

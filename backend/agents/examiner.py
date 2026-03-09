@@ -16,7 +16,8 @@ class ExaminerAgent(BaseAgent):
     name = "examiner"
 
     async def generate_transfer_test(
-        self, concept: Concept, learner: LearnerState, difficulty_tier: int = 2
+        self, concept: Concept, learner: LearnerState, difficulty_tier: int = 2,
+        preferred_language: str | None = None,
     ) -> dict:
         seen_contexts = []
         state = learner.concept_states.get(concept.id)
@@ -50,6 +51,7 @@ KNOWN MISCONCEPTIONS:
 
 SUSPECTED MISCONCEPTIONS FOR THIS LEARNER: {suspected}
 
+{'IMPORTANT: Use ' + preferred_language + ' for ALL code examples.' if preferred_language else ''}
 Generate a transfer test that:
 1. Presents {concept.name} in a COMPLETELY NEW context not listed above
 2. Requires APPLYING the concept, not just recognizing it
@@ -155,7 +157,7 @@ Return JSON with: rubric_scores, total_score (0.0-1.0), misconceptions_detected,
 
         return result
 
-    async def generate_practice(self, concept: Concept, learner: LearnerState | None = None, count: int | None = None) -> list[dict]:
+    async def generate_practice(self, concept: Concept, learner: LearnerState | None = None, count: int | None = None, preferred_language: str | None = None) -> list[dict]:
         from backend.config import settings
         if count is None:
             count = settings.default_practice_count
@@ -172,6 +174,7 @@ DOMAIN: {concept.domain}
 TEACHING CONTEXTS: {concept.teaching_contexts}
 LEARNER'S MASTERED CONCEPTS: {mastered_names[:8]}
 
+{'IMPORTANT: Use ' + preferred_language + ' for ALL code examples and solutions.' if preferred_language else ''}
 Generate {count} practice problems for {concept.name} in the context of {context}.
 These should be EASIER than transfer tests — they reinforce understanding in familiar contexts.
 Each problem should be self-contained and solvable in 2-3 minutes.

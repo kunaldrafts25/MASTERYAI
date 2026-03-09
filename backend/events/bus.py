@@ -20,24 +20,37 @@ class EventBus:
             logger.warning("Attempted to emit to closed EventBus")
             return
         try:
-            await self._queue.put(event)
+            self._queue.put_nowait(event)
         except asyncio.QueueFull:
             logger.error("Event queue full, dropping event: %s", event.event_type)
 
+        # Auto-close on terminal events
+        if event.event_type in (EventType.STREAM_COMPLETE, EventType.ERROR):
+            self._closed = True
+
     async def stream(self) -> AsyncIterator[StreamEvent]:
-        while not self._closed:
+        while not self._closed or not self._queue.empty():
             try:
                 event = await asyncio.wait_for(self._queue.get(), timeout=60.0)
                 yield event
                 if event.event_type == EventType.STREAM_COMPLETE:
-                    self._closed = True
                     break
             except asyncio.TimeoutError:
-                logger.debug("EventBus stream timeout, continuing")
+                if self._closed:
+                    break
+                logger.debug("EventBus stream timeout, sending keepalive")
                 continue
             except asyncio.CancelledError:
                 logger.info("EventBus stream cancelled")
                 self._closed = True
+                break
+
+        # Drain remaining events after close
+        while not self._queue.empty():
+            try:
+                event = self._queue.get_nowait()
+                yield event
+            except asyncio.QueueEmpty:
                 break
 
     def close(self) -> None:

@@ -16,7 +16,7 @@ Teaches in one context. Tests in another. If you can transfer the idea, you've m
 
 ---
 
-MasteryAI is a full-stack adaptive learning platform powered by 14 coordinated AI agents, a 5-layer reinforcement learning engine, SM-2 spaced repetition, agent deliberation, cross-session memory, and career intelligence. It doesn't just quiz you — it figures out how you learn best and adjusts everything in real-time.
+MasteryAI is a full-stack adaptive learning platform powered by 12 coordinated AI agents, a 5-layer reinforcement learning engine, SM-2 spaced repetition, agent deliberation, cross-session memory, and career intelligence. It doesn't just quiz you — it figures out how you learn best and adjusts everything in real-time.
 
 <br>
 
@@ -24,7 +24,7 @@ MasteryAI is a full-stack adaptive learning platform powered by 14 coordinated A
 
 **Transfer Testing** — Concepts are taught in one real-world context and tested in a completely different one. Memorization won't cut it. Understanding will.
 
-**14-Agent Orchestration** — A ReAct-style orchestrator coordinates 14 specialized agents — teacher, examiner, diagnostic, curriculum, motivation, analytics, review scheduler, RL engine, career mapper, memory, proactive intelligence, pedagogy engine, tool library, and a deliberation protocol that resolves agent conflicts.
+**12-Agent Orchestration** — A ReAct-style orchestrator coordinates 12 specialized agents — teacher, examiner, diagnostic, curriculum, motivation, analytics, review scheduler, career mapper, memory, proactive intelligence, and a deliberation protocol that resolves agent conflicts. Supported by a 5-layer RL engine, pedagogy engine, and composable tool library.
 
 **5-Layer Reinforcement Learning** — Thompson Sampling, epsilon-greedy contextual bandits, and Q-Learning continuously learn which strategies, difficulty levels, actions, engagement profiles, and review schedules work best for each individual learner. No hardcoded rules.
 

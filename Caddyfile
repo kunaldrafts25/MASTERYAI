@@ -1,0 +1,26 @@
+:80 {
+	# SSE streaming — disable buffering for real-time events
+	handle /api/v1/session/*/stream {
+		reverse_proxy backend:8000 {
+			flush_interval -1
+			transport http {
+				read_timeout 3600s
+			}
+		}
+	}
+
+	# All API routes
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	# Health check shortcut
+	handle /health {
+		reverse_proxy backend:8000 /api/v1/health
+	}
+
+	# Default
+	handle {
+		respond "MasteryAI API is running" 200
+	}
+}

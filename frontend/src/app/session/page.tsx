@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
-import { streamStartSession, streamRespond } from "@/lib/sse";
-import { getLearnerSessions } from "@/lib/api";
+import { streamStartSession, streamRespond, StreamHandle } from "@/lib/sse";
+import { getLearnerSessions, getSessionMessages } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { useSessionState } from "@/lib/hooks/useSessionState";
 import { useStreaming } from "@/lib/hooks/useStreaming";
@@ -28,6 +28,7 @@ function SessionContent() {
   const streaming = useStreaming(session.handleActionResponse, session.setError);
 
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const activeStreamRef = useRef<StreamHandle | null>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -46,30 +47,49 @@ function SessionContent() {
     }
   }
 
-  async function startNewSession(topic?: string) {
+  function startNewSession(topic?: string) {
+    activeStreamRef.current?.abort();
     session.resetSession();
     streaming.setLoading(true);
 
-    try {
-      await streamStartSession(
-        learnerId,
-        streaming.createHandlers((data) => {
-          if (data.session_id) {
-            session.setActiveSessionId(data.session_id);
-            refreshSessions();
-          }
+    activeStreamRef.current = streamStartSession(
+      learnerId,
+      streaming.createHandlers(
+        (data) => {
           session.handleActionResponse(data);
-        }),
-        topic
-      );
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to start session";
-      session.setError(msg);
-      streaming.setLoading(false);
+        },
+        (sessionId, _title) => {
+          session.setActiveSessionId(sessionId);
+          refreshSessions();
+        }
+      ),
+      topic
+    );
+  }
+
+  async function handleSelectSession(sessionId: string) {
+    activeStreamRef.current?.abort();
+    activeStreamRef.current = null;
+    streaming.resetStreaming();
+    session.resetSession();
+    session.setActiveSessionId(sessionId);
+
+    try {
+      const messages = await getSessionMessages(sessionId);
+      if (Array.isArray(messages)) {
+        for (const msg of messages) {
+          const role = msg.role === "learner" ? "learner" : "professor";
+          session.addMessage(role, msg.content);
+        }
+      }
+    } catch {
+      // If messages can't be loaded, show empty chat
     }
   }
 
   function handleNewChat() {
+    activeStreamRef.current?.abort();
+    activeStreamRef.current = null;
     session.resetSession();
     streaming.resetStreaming();
   }
@@ -79,23 +99,17 @@ function SessionContent() {
     router.push(ROUTES.LOGIN);
   }
 
-  async function handleSubmit() {
-    if (streaming.loading || !session.activeSessionId) return;
+  function handleSubmit() {
+    if (streaming.isProcessing || !session.activeSessionId) return;
 
     if (session.currentAction === ACTIONS.SELF_ASSESS) {
       session.addMessage("learner", `Confidence: ${session.confidence}/${CONFIDENCE.MAX}`);
       streaming.setLoading(true);
-      try {
-        await streamRespond(
-          session.activeSessionId,
-          { response_type: RESPONSE_TYPES.SELF_ASSESSMENT, content: "", confidence: session.confidence },
-          streaming.createHandlers()
-        );
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Submit failed";
-        session.setError(msg);
-        streaming.setLoading(false);
-      }
+      activeStreamRef.current = streamRespond(
+        session.activeSessionId,
+        { response_type: RESPONSE_TYPES.SELF_ASSESSMENT, content: "", confidence: session.confidence },
+        streaming.createHandlers()
+      );
       return;
     }
 
@@ -114,17 +128,11 @@ function SessionContent() {
     session.addMessage("learner", text);
     session.setInput("");
     streaming.setLoading(true);
-    try {
-      await streamRespond(
-        session.activeSessionId,
-        { response_type: responseType, content: text },
-        streaming.createHandlers()
-      );
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Submit failed";
-      session.setError(msg);
-      streaming.setLoading(false);
-    }
+    activeStreamRef.current = streamRespond(
+      session.activeSessionId,
+      { response_type: responseType, content: text },
+      streaming.createHandlers()
+    );
   }
 
   const isSelfAssess = session.currentAction === ACTIONS.SELF_ASSESS;
@@ -148,7 +156,7 @@ function SessionContent() {
         sessions={sessions}
         activeSessionId={session.activeSessionId}
         onNewChat={handleNewChat}
-        onSelectSession={session.setActiveSessionId}
+        onSelectSession={handleSelectSession}
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         userName={auth.name || ""}

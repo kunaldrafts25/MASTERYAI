@@ -8,11 +8,24 @@ import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(text).then(() => {
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text);
       setCopied(true);
       setTimeout(() => setCopied(false), TIMING.COPY_FEEDBACK_MS);
-    });
+    } catch {
+      // Fallback for non-HTTPS or unsupported browsers
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), TIMING.COPY_FEEDBACK_MS);
+    }
   }, [text]);
 
   return (

@@ -42,8 +42,8 @@ async def start_session(req: StartSessionRequest, user: dict = Depends(get_curre
         result = await orchestrator.start_session(learner, topic=req.topic)
         return result
     except Exception as e:
-        logger.error(f"Failed to start session: {e}")
-        raise HTTPException(500, f"Orchestrator error: {str(e)}")
+        logger.error(f"Failed to start session: {e}", exc_info=True)
+        raise HTTPException(500, "Failed to start session. Please try again.")
 
 
 @router.post("/{session_id}/respond")
@@ -69,8 +69,8 @@ async def respond(session_id: str, req: RespondRequest, user: dict = Depends(get
         )
         return result
     except Exception as e:
-        logger.error(f"Respond error in session {session_id}: {e}")
-        raise HTTPException(500, f"Orchestrator error: {str(e)}")
+        logger.error(f"Respond error in session {session_id}: {e}", exc_info=True)
+        raise HTTPException(500, "Failed to process response. Please try again.")
 
 
 # ── SSE Streaming endpoints ──────────────────────────────────────────────
@@ -91,9 +91,11 @@ async def start_session_stream(req: StartSessionRequest, user: dict = Depends(ge
             await event_bus.emit(StreamEvent.acknowledged())
             result = await orchestrator.start_session(learner, event_bus=event_bus, topic=req.topic)
         except Exception as e:
-            logger.error(f"Stream start_session error: {e}")
-            await event_bus.emit(StreamEvent.error(str(e)))
-            await event_bus.emit(StreamEvent.stream_complete())
+            logger.error(f"Stream start_session error: {e}", exc_info=True)
+            await event_bus.emit(StreamEvent.error("Something went wrong starting the session. Please try again."))
+        finally:
+            if not event_bus.is_closed:
+                await event_bus.emit(StreamEvent.stream_complete())
 
     asyncio.create_task(process())
     return create_sse_response(event_bus)
@@ -126,9 +128,11 @@ async def respond_stream(session_id: str, req: RespondRequest, user: dict = Depe
                 event_bus=event_bus,
             )
         except Exception as e:
-            logger.error(f"Stream respond error in {session_id}: {e}")
-            await event_bus.emit(StreamEvent.error(str(e)))
-            await event_bus.emit(StreamEvent.stream_complete())
+            logger.error(f"Stream respond error in {session_id}: {e}", exc_info=True)
+            await event_bus.emit(StreamEvent.error("Something went wrong processing your response. Please try again."))
+        finally:
+            if not event_bus.is_closed:
+                await event_bus.emit(StreamEvent.stream_complete())
 
     asyncio.create_task(process())
     return create_sse_response(event_bus)
@@ -143,5 +147,17 @@ async def get_events(session_id: str, user: dict = Depends(get_current_user)):
         raise HTTPException(404, "Session not found")
     await verify_ownership(user, session.learner_id)
     return [e.model_dump() for e in session.events]
+
+
+@router.get("/{session_id}/messages")
+async def get_messages(session_id: str, user: dict = Depends(get_current_user)):
+    """Return chat messages for loading session history in the frontend."""
+    session = orchestrator.get_session(session_id)
+    if not session:
+        session = await learner_store.get_session(session_id)
+    if not session:
+        raise HTTPException(404, "Session not found")
+    await verify_ownership(user, session.learner_id)
+    return session.conversation_history
 
 

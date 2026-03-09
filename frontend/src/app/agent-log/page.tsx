@@ -46,7 +46,10 @@ function AgentLogContent() {
       return;
     }
     doFetch();
-    const interval = setInterval(doFetch, TIMING.AGENT_LOG_POLL_MS);
+    // Only poll when tab is visible
+    const interval = setInterval(() => {
+      if (!document.hidden) doFetch();
+    }, TIMING.AGENT_LOG_POLL_MS);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionId]);

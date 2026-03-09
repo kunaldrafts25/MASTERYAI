@@ -1,4 +1,4 @@
-import { API_BASE, authHeaders } from "./config";
+import { API_BASE, authHeaders, isTokenExpired } from "./config";
 import { clearAuth } from "./auth";
 
 let onUnauthorized: (() => void) | null = null;
@@ -9,6 +9,13 @@ export function setOnUnauthorized(cb: () => void) {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  // Proactive expiry check — avoid a wasted round-trip
+  if (isTokenExpired() && !path.startsWith("/auth/")) {
+    clearAuth();
+    onUnauthorized?.();
+    throw new Error("Session expired");
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     headers: authHeaders(),
     ...options,
@@ -61,6 +68,7 @@ export function loginUser(data: { email: string; password: string }) {
 export interface LearnerSession {
   session_id: string;
   started_at: string;
+  title?: string | null;
   current_concept: string | null;
   concepts_covered: string[];
   concepts_mastered: string[];
@@ -90,6 +98,12 @@ export function getCalibration(learnerId: string) {
 
 export function getEvents(sessionId: string) {
   return request<unknown[]>(`/session/${sessionId}/events`);
+}
+
+export function getSessionMessages(sessionId: string) {
+  return request<{ role: string; content: string; timestamp?: string }[]>(
+    `/session/${sessionId}/messages`
+  );
 }
 
 // Career

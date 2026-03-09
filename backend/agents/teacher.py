@@ -104,7 +104,8 @@ Return JSON: {{"reflection": "your analysis of what happened", "recommended_stra
 
     async def teach(
         self, concept: Concept, learner: LearnerState, strategy: str | None = None,
-        misconceptions: list[str] | None = None, event_bus=None
+        misconceptions: list[str] | None = None, event_bus=None,
+        preferred_language: str | None = None,
     ) -> dict:
         if not strategy:
             strategy = self.select_strategy(learner, concept.id, misconceptions)
@@ -145,6 +146,7 @@ LEARNER PROFILE:
 STRATEGY: {strategy}
 {strategy_instructions.get(strategy, '')}
 
+{'IMPORTANT: The learner wants ALL code examples in ' + preferred_language + '. Use ' + preferred_language + ' syntax for every code snippet.' if preferred_language else ''}
 Teach this concept conversationally. Make it engaging and clear — like you're explaining it to a curious friend over coffee.
 End with a natural check-for-understanding question (not a quiz — more like "Does that make sense? What do you think would happen if...?").
 

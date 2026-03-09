@@ -16,23 +16,29 @@ CACHE_MAX = settings.cache_max
 
 class LRUCache:
 
-    def __init__(self, maxsize: int = CACHE_MAX):
-        self._data: OrderedDict[str, str] = OrderedDict()
+    def __init__(self, maxsize: int = CACHE_MAX, ttl: float = 3600.0):
+        self._data: OrderedDict[str, tuple[str, float]] = OrderedDict()
         self._maxsize = maxsize
+        self._ttl = ttl
 
     def get(self, key: str) -> str | None:
         if key in self._data:
+            value, ts = self._data[key]
+            if time.monotonic() - ts > self._ttl:
+                del self._data[key]
+                return None
             self._data.move_to_end(key)
-            return self._data[key]
+            return value
         return None
 
     def put(self, key: str, value: str):
+        now = time.monotonic()
         if key in self._data:
             self._data.move_to_end(key)
         else:
             if len(self._data) >= self._maxsize:
                 self._data.popitem(last=False)
-        self._data[key] = value
+        self._data[key] = (value, now)
 
     def __len__(self):
         return len(self._data)
@@ -234,7 +240,7 @@ class LLMClient:
         or ("error", exception) into the queue.
         Returns the full concatenated text.
         """
-        queue = asyncio.Queue()
+        queue: asyncio.Queue = asyncio.Queue()
         loop = asyncio.get_running_loop()
 
         thread = threading.Thread(target=sync_fn, args=(loop, queue), daemon=True)
@@ -242,7 +248,11 @@ class LLMClient:
 
         full_text = ""
         while True:
-            msg_type, data = await queue.get()
+            try:
+                msg_type, data = await asyncio.wait_for(queue.get(), timeout=CALL_TIMEOUT)
+            except asyncio.TimeoutError:
+                logger.error("streaming bridge timed out after %ds", CALL_TIMEOUT)
+                raise TimeoutError(f"Streaming timed out after {CALL_TIMEOUT}s")
             if msg_type == "done":
                 break
             if msg_type == "error":

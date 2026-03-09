@@ -65,6 +65,7 @@ export const ACTIONS = {
   RETEST: "retest",
   DECAY_CHECK: "decay_check",
   COMPLETE: "complete",
+  CHAT_RESPONSE: "chat_response",
 } as const;
 
 export const RESPONSE_TYPES = {

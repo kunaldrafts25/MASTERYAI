@@ -4,6 +4,7 @@ import { API_BASE, authHeaders } from "./config";
 
 export interface StreamHandlers {
   onAcknowledged?: () => void;
+  onChatCreated?: (sessionId: string, title: string) => void;
   onAgentThinking?: (agent: string, message: string) => void;
   onThinkingComplete?: () => void;
   onTextChunk?: (chunk: string, final: boolean) => void;
@@ -18,6 +19,7 @@ export interface StreamHandlers {
 /** Discriminated union for SSE events from the backend */
 export type StreamEvent =
   | { type: "acknowledged" }
+  | { type: "chat_created"; session_id: string; title: string }
   | { type: "agent_thinking"; agent: string; message: string }
   | { type: "thinking_complete" }
   | { type: "text_chunk"; chunk: string; final: boolean }
@@ -46,19 +48,38 @@ export interface ActionResult {
   [key: string]: unknown;
 }
 
+/** Active stream handle returned by streaming functions */
+export interface StreamHandle {
+  abort: () => void;
+}
+
 async function streamRequest(
   path: string,
   body: object,
-  handlers: StreamHandlers
+  handlers: StreamHandlers,
+  signal?: AbortSignal
 ): Promise<void> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    method: "POST",
-    headers: authHeaders(),
-    body: JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify(body),
+      signal,
+    });
+  } catch (err) {
+    if (signal?.aborted) return;
+    handlers.onError?.(err instanceof Error ? err.message : "Network error");
+    return;
+  }
 
   if (!response.ok) {
-    const text = await response.text();
+    let text: string;
+    try {
+      text = await response.text();
+    } catch {
+      text = "";
+    }
     handlers.onError?.(text || `HTTP ${response.status}`);
     return;
   }
@@ -83,32 +104,47 @@ async function streamRequest(
       const lines = buffer.split("\n\n");
       buffer = lines.pop() || "";
 
-      for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith(":")) continue; // keepalive comment
+      for (const block of lines) {
+        if (!block.trim()) continue;
 
-        const dataPrefix = "data: ";
-        if (!trimmed.startsWith(dataPrefix)) continue;
+        // Each SSE block can have multiple lines: "id: 1\ndata: {...}"
+        // Find the "data:" line within the block
+        const subLines = block.split("\n");
+        for (const sub of subLines) {
+          const trimmed = sub.trim();
+          if (!trimmed || trimmed.startsWith(":")) continue; // keepalive or empty
 
-        try {
-          const json = JSON.parse(trimmed.slice(dataPrefix.length));
-          dispatchEvent(json, handlers);
-        } catch {
-          // skip malformed JSON
+          const dataPrefix = "data: ";
+          if (!trimmed.startsWith(dataPrefix)) continue;
+
+          try {
+            const json = JSON.parse(trimmed.slice(dataPrefix.length));
+            dispatchEvent(json, handlers);
+          } catch {
+            // skip malformed JSON
+          }
         }
       }
     }
+  } catch (err) {
+    if (signal?.aborted) return;
+    handlers.onError?.(err instanceof Error ? err.message : "Stream interrupted");
   } finally {
-    reader.releaseLock();
+    try {
+      reader.releaseLock();
+    } catch {
+      // reader may already be released
+    }
   }
-
-  handlers.onComplete?.();
 }
 
 function dispatchEvent(event: StreamEvent, handlers: StreamHandlers) {
   switch (event.type) {
     case "acknowledged":
       handlers.onAcknowledged?.();
+      break;
+    case "chat_created":
+      handlers.onChatCreated?.(event.session_id || "", event.title || "");
       break;
     case "agent_thinking":
       handlers.onAgentThinking?.(event.agent || "", event.message || "");
@@ -144,16 +180,20 @@ export function streamStartSession(
   learnerId: string,
   handlers: StreamHandlers,
   topic?: string
-) {
+): StreamHandle {
+  const controller = new AbortController();
   const body: Record<string, string> = { learner_id: learnerId };
   if (topic) body.topic = topic;
-  return streamRequest("/session/start/stream", body, handlers);
+  streamRequest("/session/start/stream", body, handlers, controller.signal);
+  return { abort: () => controller.abort() };
 }
 
 export function streamRespond(
   sessionId: string,
   data: { response_type: string; content: string; confidence?: number },
   handlers: StreamHandlers
-) {
-  return streamRequest(`/session/${sessionId}/respond/stream`, data, handlers);
+): StreamHandle {
+  const controller = new AbortController();
+  streamRequest(`/session/${sessionId}/respond/stream`, data, handlers, controller.signal);
+  return { abort: () => controller.abort() };
 }

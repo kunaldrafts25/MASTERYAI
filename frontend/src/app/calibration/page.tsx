@@ -5,6 +5,7 @@ import { getCalibration } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { NavBar } from "../providers";
 import { CALIBRATION } from "@/lib/constants";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Legend,
@@ -137,8 +138,10 @@ function CalibrationContent() {
 
 export default function CalibrationPage() {
   return (
-    <Suspense fallback={<p className="text-zinc-400 p-8">Loading...</p>}>
-      <CalibrationContent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<p className="text-zinc-400 p-8">Loading...</p>}>
+        <CalibrationContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }

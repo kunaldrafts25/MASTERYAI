@@ -11,6 +11,7 @@ class EventType(str, Enum):
 
     # Connection
     ACKNOWLEDGED = "acknowledged"
+    CHAT_CREATED = "chat_created"
 
     # Agent activity
     AGENT_THINKING = "agent_thinking"
@@ -68,6 +69,13 @@ class StreamEvent:
     @classmethod
     def acknowledged(cls) -> "StreamEvent":
         return cls(event_type=EventType.ACKNOWLEDGED)
+
+    @classmethod
+    def chat_created(cls, session_id: str, title: str = "") -> "StreamEvent":
+        return cls(
+            event_type=EventType.CHAT_CREATED,
+            data={"session_id": session_id, "title": title},
+        )
 
     @classmethod
     def agent_thinking(cls, agent: str, message: str = "") -> "StreamEvent":

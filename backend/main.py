@@ -16,10 +16,21 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("starting up — dynamic mode (no static data pre-loaded)")
-    # Concepts are generated on-the-fly when a user picks a topic.
-    # Career roles are generated on demand.
-    # Tests load static seed data via conftest.py.
+    logger.info("starting up")
+
+    # Load seed knowledge graph so select_next_concept has concepts to offer.
+    # New topics are still generated on-the-fly; this just provides the base set.
+    try:
+        knowledge_graph.load()
+        logger.info("knowledge graph loaded: %d concepts", len(knowledge_graph.concepts))
+    except Exception as e:
+        logger.warning("knowledge graph load failed: %s — concepts will be generated on demand", e)
+
+    try:
+        career_service.load()
+        logger.info("career roles loaded: %d roles", len(career_service.roles))
+    except Exception as e:
+        logger.warning("career roles load failed: %s — career features will be limited", e)
 
     try:
         from backend.db.database import db
@@ -83,8 +94,25 @@ async def global_exception_handler(request: Request, exc: Exception):
 @app.get("/api/v1/health")
 async def health():
     from backend.services.llm_client import llm_client
+    from backend.agents.orchestrator import orchestrator
+    from backend.services.cache import cache
+
+    redis_ok = False
+    try:
+        if cache._redis:
+            await cache._redis.ping()
+            redis_ok = True
+    except Exception:
+        pass
+
     return {
         "status": "ok",
+        "version": app.version,
+        "services": {
+            "redis": "connected" if redis_ok else "unavailable",
+            "database": "postgresql" if settings.database_url.startswith("postgresql") else "sqlite",
+        },
+        "active_sessions": len(orchestrator.active_sessions),
         "concepts_loaded": len(knowledge_graph.concepts),
         "roles_loaded": len(career_service.roles),
         "llm": llm_client.get_stats(),

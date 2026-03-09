@@ -52,23 +52,30 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         for ip in stale:
             del self.requests[ip]
 
-    def _is_rate_limited(self, ip: str) -> bool:
+    def _is_rate_limited(self, ip: str) -> tuple[bool, int]:
         now = time.time()
         cutoff = now - WINDOW_SECONDS
         self.requests[ip] = [t for t in self.requests[ip] if t > cutoff]
         if len(self.requests[ip]) >= RATE_LIMIT:
-            return True
+            oldest = self.requests[ip][0] if self.requests[ip] else now
+            retry_after = max(1, int(oldest + WINDOW_SECONDS - now))
+            return True, retry_after
         self.requests[ip].append(now)
-        return False
+        return False, 0
 
     async def dispatch(self, request: Request, call_next) -> Response:
         self._cleanup()
 
         client_ip = request.client.host if request.client else "unknown"
 
-        if self._is_rate_limited(client_ip):
+        limited, retry_after = self._is_rate_limited(client_ip)
+        if limited:
             logger.warning(f"Rate limit exceeded for {client_ip}")
-            return JSONResponse(status_code=429, content={"detail": "Too many requests"})
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Too many requests"},
+                headers={"Retry-After": str(retry_after)},
+            )
 
         start = time.time()
         response = await call_next(request)
