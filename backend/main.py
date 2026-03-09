@@ -60,9 +60,15 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+import os
+_cors_origins = list(settings.cors_origins)
+_frontend_url = os.getenv("FRONTEND_URL", "").rstrip("/")
+if _frontend_url and _frontend_url not in _cors_origins:
+    _cors_origins.append(_frontend_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins,
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
