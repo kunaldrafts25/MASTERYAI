@@ -8,6 +8,6 @@ node_modules/
 .pytest_cache/
 *.egg-info/
 tests/logs/
+tests/__pycache__/
 venv/
 docs/
-tests/
